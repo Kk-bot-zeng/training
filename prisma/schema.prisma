@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  employees Employee[]
+}
+
+model Employee {
+  id           Int          @id @default(autoincrement())
+  name         String
+  employeeNo   String       @unique
+  departmentId Int
+  department   Department   @relation(fields: [departmentId], references: [id])
+  status       String       @default("active")
+  phone        String?
+  createdAt    DateTime     @default(now())
+  attendance   Attendance[]
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Training {
+  id            Int          @id @default(autoincrement())
+  title         String
+  description   String?
+  type          String       @default("training")
+  date          DateTime
+  startTime     String
+  endTime       String
+  location      String?
+  departmentIds String
+  qrToken       String       @unique
+  status        String       @default("upcoming")
+  createdAt     DateTime     @default(now())
+  attendance    Attendance[]
+}
+
+model Attendance {
+  id          Int       @id @default(autoincrement())
+  trainingId  Int
+  training    Training  @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  employeeId  Int
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  status      String    @default("present")
+  checkInTime DateTime?
+  remark      String?
+  createdAt   DateTime  @default(now())
+
+  @@unique([trainingId, employeeId])
+}
