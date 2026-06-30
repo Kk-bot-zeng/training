@@ -1,22 +1,25 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  pool: Pool | undefined;
 };
 
 function createPrismaClient(): PrismaClient {
-  const url = process.env.DATABASE_URL || "file:dev.db";
+  const url = process.env.DATABASE_URL!;
 
+  // PostgreSQL (Neon/Supabase)
   if (url.startsWith("postgresql://") || url.startsWith("postgres://")) {
-    // PostgreSQL - used in production (Neon / Supabase)
-    // Prisma 7 uses the built-in pg adapter when provider is postgresql
-    return new PrismaClient();
+    const pool = new Pool({ connectionString: url });
+    globalForPrisma.pool = pool;
+    const adapter = new PrismaPg(pool);
+    return new PrismaClient({ adapter });
   }
 
-  // SQLite - used in local development
-  const adapter = new PrismaBetterSqlite3({ url });
-  return new PrismaClient({ adapter });
+  // Fallback
+  return new PrismaClient();
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
