@@ -1,12 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
 
-const pool = new Pool({
+const adapter = new PrismaNeon({
   connectionString: process.env.DATABASE_URL || "postgresql://neondb_owner:npg_K5ICF7jRVpTa@ep-shiny-silence-aon8iimx.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
 });
-const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -97,5 +95,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });
