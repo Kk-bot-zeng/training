@@ -4,6 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import dayjs from "dayjs";
 
+// WeChat / QQ内置浏览器检测
+function isWeChatBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes("micromessenger") || ua.includes("qq/");
+}
+
 interface CheckinEmployee {
   id: number;
   name: string;
@@ -43,6 +50,8 @@ export default function CheckinPage() {
   const [error, setError] = useState("");
   const [checkingIn, setCheckingIn] = useState<number | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [wechatDetected, setWechatDetected] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ type, message });
@@ -81,7 +90,12 @@ export default function CheckinPage() {
   }, [qrToken]);
 
   useEffect(() => {
-    fetchData();
+    if (isWeChatBrowser()) {
+      setWechatDetected(true);
+      setLoading(false);
+    } else {
+      fetchData();
+    }
   }, [fetchData]);
 
   const handleCheckin = async (employeeId: number) => {
@@ -127,6 +141,37 @@ export default function CheckinPage() {
     : employees;
 
   const checkedInCount = employees.filter((e) => e.checkedIn).length;
+
+  // WeChat / QQ browser prompt
+  if (wechatDetected) {
+    const fullUrl = typeof window !== "undefined" ? window.location.href : "";
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-500 to-blue-600 flex flex-col items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-lg font-bold text-gray-800 mb-2">请用系统浏览器打开</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            微信/QQ内置浏览器无法打开签到页面，请点击右上角菜单，选择<strong>「在浏览器中打开」</strong>
+          </p>
+          <div className="bg-gray-50 rounded-lg p-3 mb-4 break-all text-xs text-gray-600 text-left">
+            {fullUrl}
+          </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullUrl).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              });
+            }}
+            className="w-full py-3 bg-blue-500 text-white rounded-full font-medium text-sm hover:bg-blue-600 active:scale-95 transition-all mb-2"
+          >
+            {copied ? "✅ 已复制链接" : "📋 复制签到链接"}
+          </button>
+          <p className="text-xs text-gray-400">复制链接后，用手机自带浏览器（Safari/Chrome）打开</p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (loading) {
