@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Form, Input, Button, Card, Typography, message } from "antd";
+import { Form, Input, Button, Typography, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -20,54 +20,74 @@ export default function LoginPage() {
         body: JSON.stringify(values),
       });
       const data = await res.json();
-      if (data.success) {
-        message.success("登录成功");
-        router.push("/admin");
-      } else {
-        message.error(data.message || "登录失败");
-      }
-    } catch {
-      message.error("网络错误");
-    } finally {
-      setLoading(false);
-    }
+      if (data.success) { message.success("登录成功"); router.push("/admin"); }
+      else message.error(data.message || "登录失败");
+    } catch { message.error("网络错误"); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card
-        className="w-full max-w-sm shadow-lg"
-        styles={{ body: { padding: 32 } }}
-      >
-        <div className="text-center mb-6">
-          <Title level={3} className="!mb-1" style={{ color: "#1677ff" }}>
-            培训考勤系统
-          </Title>
-          <Text type="secondary">管理员登录</Text>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "linear-gradient(135deg, #0d1a32 0%, #132044 40%, #1a2744 100%)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* 背景装饰 */}
+      <div style={{ position: "absolute", top: -120, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(99,132,255,0.08)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -100, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(139,92,246,0.06)", pointerEvents: "none" }} />
+
+      <div style={{
+        background: "#fff",
+        borderRadius: 20,
+        padding: "48px 40px",
+        width: 400,
+        maxWidth: "90vw",
+        boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
+        position: "relative",
+        zIndex: 1,
+      }}>
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16,
+            background: "linear-gradient(135deg, #6384ff, #8b5cf6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 24, fontWeight: 700, color: "#fff", margin: "0 auto 16px",
+          }}>
+            T
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1f2937", margin: "0 0 4px" }}>培训考勤系统</h1>
+          <Text type="secondary" style={{ fontSize: 14 }}>管理员登录</Text>
         </div>
 
         <Form onFinish={onFinish} size="large" layout="vertical">
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: "请输入用户名" }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="用户名" />
+          <Form.Item name="username" rules={[{ required: true, message: "请输入用户名" }]}>
+            <Input prefix={<UserOutlined style={{ color: "#9ca3af" }} />} placeholder="用户名"
+              style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: "请输入密码" }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="密码" />
+          <Form.Item name="password" rules={[{ required: true, message: "请输入密码" }]}>
+            <Input.Password prefix={<LockOutlined style={{ color: "#9ca3af" }} />} placeholder="密码"
+              style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
-
-          <Form.Item className="!mb-0">
-            <Button type="primary" htmlType="submit" loading={loading} block>
-              登录
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Button type="primary" htmlType="submit" loading={loading}
+              style={{
+                width: "100%", height: 48, borderRadius: 10, fontSize: 15, fontWeight: 600,
+                background: "linear-gradient(135deg, #6384ff, #764ba2)", border: "none",
+              }}>
+              登 录
             </Button>
           </Form.Item>
         </Form>
-      </Card>
+
+        <p style={{ textAlign: "center", color: "#d1d5db", fontSize: 12, marginTop: 24 }}>
+          Powered by Training System
+        </p>
+      </div>
     </div>
   );
 }

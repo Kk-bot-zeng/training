@@ -124,8 +124,11 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-xl font-bold">考勤记录</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>考勤记录</h1>
+          <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: 14 }}>查看每场培训的签到详情</p>
+        </div>
         <Space wrap>
           <Select
             placeholder="选择培训查看考勤"

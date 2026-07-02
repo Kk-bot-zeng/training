@@ -208,8 +208,11 @@ export default function EmployeesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-xl font-bold">员工管理</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>员工管理</h1>
+          <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: 14 }}>管理公司员工信息，支持批量导入</p>
+        </div>
         <Space wrap>
           <Input.Search
             placeholder="搜索姓名/工号"
@@ -244,15 +247,17 @@ export default function EmployeesPage() {
         </Space>
       </div>
 
-      <Table
-        dataSource={employees}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 名员工` }}
-        locale={{ emptyText: "暂无员工数据" }}
-        scroll={{ x: 800 }}
-      />
+      <div style={{ background: "#fff", borderRadius: 16, padding: "8px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <Table
+          dataSource={employees}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 名员工` }}
+          locale={{ emptyText: "暂无员工数据" }}
+          scroll={{ x: 800 }}
+        />
+      </div>
 
       {/* Employee Form Drawer */}
       <Drawer

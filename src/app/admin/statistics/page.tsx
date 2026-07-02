@@ -169,7 +169,10 @@ export default function StatisticsPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">统计分析</h2>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>统计分析</h1>
+        <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: 14 }}>出勤率统计、部门对比、个人档案</p>
+      </div>
 
       {/* Training-specific stats */}
       <Card title="培训出勤统计" className="mb-4">

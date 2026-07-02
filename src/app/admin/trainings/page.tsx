@@ -146,49 +146,42 @@ export default function TrainingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-xl font-bold">培训管理</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>培训管理</h1>
+          <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: 14 }}>创建和管理培训/考试，生成签到二维码</p>
+        </div>
         <Space wrap>
-          <Select
-            placeholder="状态筛选"
-            allowClear
-            style={{ width: 120 }}
-            onChange={setStatusFilter}
+          <Select placeholder="状态筛选" allowClear style={{ width: 120 }} onChange={setStatusFilter}
             options={[
               { label: "未开始", value: "upcoming" },
               { label: "进行中", value: "ongoing" },
               { label: "已结束", value: "completed" },
             ]}
           />
-          <Select
-            placeholder="类型筛选"
-            allowClear
-            style={{ width: 120 }}
-            onChange={setTypeFilter}
+          <Select placeholder="类型筛选" allowClear style={{ width: 120 }} onChange={setTypeFilter}
             options={[
               { label: "培训", value: "training" },
               { label: "考试", value: "exam" },
             ]}
           />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => router.push("/admin/trainings/create")}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push("/admin/trainings/create")}>
             创建培训
           </Button>
         </Space>
       </div>
 
-      <Table
-        dataSource={trainings}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 20 }}
-        locale={{ emptyText: "暂无培训数据" }}
-        scroll={{ x: 1000 }}
-      />
+      <div style={{ background: "#fff", borderRadius: 16, padding: "8px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <Table
+          dataSource={trainings}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 20 }}
+          locale={{ emptyText: "暂无培训数据" }}
+          scroll={{ x: 1000 }}
+        />
+      </div>
     </div>
   );
 }
