@@ -68,7 +68,7 @@ export default function DepartmentsPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         {pageHeader("部门管理", "管理公司组织架构")}
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingDept(null); form.resetFields(); setModalOpen(true); }}

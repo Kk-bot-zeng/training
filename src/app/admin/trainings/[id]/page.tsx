@@ -15,7 +15,7 @@ import {
   Col,
   Statistic,
 } from "antd";
-import { QrcodeOutlined, ExportOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { QrcodeOutlined, ExportOutlined, ArrowLeftOutlined, PrinterOutlined } from "@ant-design/icons";
 import { useParams, useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import type { Department } from "@/types";
@@ -209,6 +209,9 @@ export default function TrainingDetailPage() {
                 onClick={() => router.push(`/admin/trainings/${id}/qr`)}
               >
                 查看二维码
+              </Button>
+              <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
+                打印签到表
               </Button>
               {statusLabel === "upcoming" && (
                 <Button
