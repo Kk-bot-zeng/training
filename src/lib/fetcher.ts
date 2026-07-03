@@ -1,4 +1,4 @@
-// SWR fetcher with auth cookie auto-included
+// SWR fetcher — includes credentials for cookie auth
 export const fetcher = (url: string) =>
   fetch(url, { credentials: "include" }).then((r) => {
     if (!r.ok) throw new Error("Request failed");
@@ -7,3 +7,10 @@ export const fetcher = (url: string) =>
       return data.data;
     });
   });
+
+// Default SWR config — cache for 30s before background revalidation
+export const swrConfig = {
+  revalidateOnFocus: false,
+  dedupingInterval: 5000,
+  errorRetryCount: 2,
+};
