@@ -20,6 +20,7 @@ import {
   ImportOutlined,
   EditOutlined,
   DeleteOutlined,
+  KeyOutlined,
   UploadOutlined,
   DownloadOutlined,
 } from "@ant-design/icons";
@@ -193,13 +194,24 @@ export default function EmployeesPage() {
           >
             编辑
           </Button>
-          <Popconfirm
-            title="确定将该员工设为离职？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              离职
-            </Button>
+          <Button type="link" size="small" icon={<KeyOutlined />}
+            onClick={() => {
+              const pw = prompt("为新学员设置登录密码（至少4位）：");
+              if (pw && pw.length >= 4) {
+                fetch(`/api/employees/${record.id}/password`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ password: pw }),
+                }).then(r => r.json()).then(d => {
+                  message.success(d.message || "密码设置成功");
+                });
+              } else if (pw) {
+                message.warning("密码至少4位");
+              }
+            }}>
+            密码
+          </Button>
+          <Popconfirm title="确定将该员工设为离职？" onConfirm={() => handleDelete(record.id)}>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>离职</Button>
           </Popconfirm>
         </Space>
       ),
