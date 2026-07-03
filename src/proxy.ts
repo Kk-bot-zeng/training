@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "training-attendance-secret-key"
-);
 
 const publicPaths = [
   "/login",
@@ -13,7 +8,9 @@ const publicPaths = [
   "/api/checkin",
 ];
 
-export async function proxy(request: NextRequest) {
+// Don't verify JWT in proxy — just check presence of token cookie.
+// Actual JWT verification is done in API route handlers via getAuthUser/getAuthAdmin.
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
@@ -21,43 +18,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static assets and Next.js internals
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/api/auth/login")
-  ) {
+  // Allow static assets
+  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) {
     return NextResponse.next();
   }
 
-  // Protect admin pages and API routes
-  if (pathname.startsWith("/admin") || pathname.startsWith("/api/")) {
-    const token =
-      request.cookies.get("token")?.value ||
-      request.headers.get("Authorization")?.replace("Bearer ", "");
+  // Protect pages & API routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/portal") || pathname.startsWith("/api/")) {
+    const token = request.cookies.get("token")?.value;
 
     if (!token) {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { success: false, message: "未登录" },
-          { status: 401 }
-        );
+        return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
       }
       return NextResponse.redirect(new URL("/login", request.url));
     }
-
-    try {
-      await jwtVerify(token, JWT_SECRET);
-      return NextResponse.next();
-    } catch {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { success: false, message: "登录已过期" },
-          { status: 401 }
-        );
-      }
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
+    // Token exists — let the route handler verify it
+    return NextResponse.next();
   }
 
   return NextResponse.next();
