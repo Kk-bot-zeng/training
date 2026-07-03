@@ -40,7 +40,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     }).catch(() => router.push("/login"));
   }, [router]);
 
-  const selectedKey = menuItems.find(m => pathname === m.key || pathname.startsWith(m.key + "/"))?.key || "/portal";
+  // Match longest key first so /portal/exams wins over /portal
+  const selectedKey = [...menuItems]
+    .sort((a, b) => b.key.length - a.key.length)
+    .find(m => pathname === m.key || pathname.startsWith(m.key + "/"))?.key || "/portal";
 
   return (
     <ConfigProvider theme={{ components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "rgba(99,132,255,0.15)", darkItemSelectedColor: "#6384ff", darkItemColor: "rgba(255,255,255,0.65)", darkItemHoverBg: "rgba(255,255,255,0.04)" } } }}>
