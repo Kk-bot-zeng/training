@@ -20,7 +20,10 @@ export default function LoginPage() {
         body: JSON.stringify(values),
       });
       const data = await res.json();
-      if (data.success) { message.success("登录成功"); router.push("/admin"); }
+      if (data.success) {
+        message.success("登录成功");
+        router.push(data.data.role === "admin" ? "/admin" : "/portal");
+      }
       else message.error(data.message || "登录失败");
     } catch { message.error("网络错误"); }
     finally { setLoading(false); }

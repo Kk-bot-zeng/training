@@ -7,6 +7,7 @@ import {
   DashboardOutlined, ApartmentOutlined, TeamOutlined, BookOutlined,
   CheckCircleOutlined, BarChartOutlined, LogoutOutlined, MenuFoldOutlined,
   MenuUnfoldOutlined, UserOutlined, HomeOutlined, FolderOpenOutlined,
+  EditOutlined, FileTextOutlined,
 } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
@@ -28,6 +29,10 @@ const menuItems = [
   ]},
   { type: "group", label: "培训档案", children: [
     { key: "/admin/training-records", icon: <FolderOpenOutlined />, label: "培训档案" },
+  ]},
+  { type: "group", label: "考试管理", children: [
+    { key: "/admin/questions", icon: <EditOutlined />, label: "题库管理" },
+    { key: "/admin/exam-papers", icon: <FileTextOutlined />, label: "试卷管理" },
   ]},
 ];
 
