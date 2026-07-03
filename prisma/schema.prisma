@@ -61,3 +61,19 @@ model Attendance {
 
   @@unique([trainingId, employeeId])
 }
+
+model TrainingRecord {
+  id               Int      @id @default(autoincrement())
+  topic            String                            // 培训主题
+  target           String                            // 培训对象（部门/人员）
+  date             DateTime                          // 培训时间
+  initiator        String                            // 需求发起人
+  format           String   @default("offline")      // 培训形式: online/offline/hybrid
+  participantCount Int      @default(0)              // 参训人数
+  instructor       String?                           // 讲师
+  description      String?                           // 需求描述
+  status           String   @default("completed")    // 需求状态: pending/ongoing/completed
+  materials        String?                           // 课件 JSON: [{name, url, type}]
+  recording        String?                           // 培训录屏URL
+  createdAt        DateTime @default(now())
+}

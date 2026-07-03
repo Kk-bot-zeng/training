@@ -6,7 +6,7 @@ import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider } fr
 import {
   DashboardOutlined, ApartmentOutlined, TeamOutlined, BookOutlined,
   CheckCircleOutlined, BarChartOutlined, LogoutOutlined, MenuFoldOutlined,
-  MenuUnfoldOutlined, UserOutlined, HomeOutlined,
+  MenuUnfoldOutlined, UserOutlined, HomeOutlined, FolderOpenOutlined,
 } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
@@ -26,6 +26,9 @@ const menuItems = [
   { type: "group", label: "数据分析", children: [
     { key: "/admin/statistics", icon: <BarChartOutlined />, label: "统计分析" },
   ]},
+  { type: "group", label: "培训档案", children: [
+    { key: "/admin/training-records", icon: <FolderOpenOutlined />, label: "培训档案" },
+  ]},
 ];
 
 const breadcrumbMap: Record<string, string> = {
@@ -36,6 +39,7 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/trainings/create": "创建培训",
   "/admin/attendance": "考勤记录",
   "/admin/statistics": "统计分析",
+  "/admin/training-records": "培训档案",
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
