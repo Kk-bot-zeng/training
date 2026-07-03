@@ -54,17 +54,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setUsername(data.data.username);
-        else router.push("/login");
-      })
-      .catch(() => router.push("/login"));
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        setUsername(u.name);
+        if (u.role !== "admin") router.push("/login");
+        return;
+      } catch {}
+    }
+    fetch("/api/auth/me").then(r => r.json()).then(data => {
+      if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.data));
+        setUsername(data.data.username);
+      } else router.push("/login");
+    }).catch(() => router.push("/login"));
   }, [router]);
 
   const handleLogout = async () => {
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
+    localStorage.removeItem("user");
     document.cookie = "token=; path=/; max-age=0";
     router.push("/login");
   };

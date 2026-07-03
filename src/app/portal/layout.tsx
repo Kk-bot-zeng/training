@@ -21,8 +21,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        setUser({ name: u.name, role: u.role });
+        if (u.role === "admin") router.push("/admin");
+        return;
+      } catch {}
+    }
+    // Fallback: check API
     fetch("/api/auth/me").then(r => r.json()).then(data => {
       if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.data));
         setUser({ name: data.data.username, role: data.data.role });
         if (data.data.role === "admin") router.push("/admin");
       } else router.push("/login");

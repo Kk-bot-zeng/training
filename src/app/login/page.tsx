@@ -21,6 +21,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.data));
         message.success("登录成功");
         router.push(data.data.role === "admin" ? "/admin" : "/portal");
       }
