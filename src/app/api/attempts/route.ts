@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
+export async function GET() {
+  try {
+    const user = await getAuthUser();
+    const attempts = await prisma.examAttempt.findMany({
+      where: user.role === "employee" ? { employeeId: user.id } : undefined,
+      include: {
+        paper: { select: { id: true, title: true, passScore: true, totalScore: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json({ success: true, data: attempts });
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === "Unauthorized") {
+      return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
+    }
+    console.error(e);
+    return NextResponse.json({ success: false, message: "获取成绩失败" }, { status: 500 });
+  }
+}
+
 // 学员参加考试
 export async function POST(request: NextRequest) {
   try {

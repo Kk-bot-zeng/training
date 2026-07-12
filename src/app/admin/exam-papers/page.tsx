@@ -13,7 +13,9 @@ export default function ExamPapersPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingPaper, setEditingPaper] = useState<Record<string, unknown> | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [questions, setQuestions] = useState<Record<string, unknown>[]>([]);
   const [form] = Form.useForm();
+  const selectedQuestionIds: number[] = Form.useWatch("questionIds", form) || [];
 
   const fetchPapers = async () => {
     setLoading(true);
@@ -23,13 +25,26 @@ export default function ExamPapersPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchPapers(); }, []);
+  useEffect(() => {
+    fetchPapers();
+    fetch("/api/questions?pageSize=500")
+      .then((res) => res.json())
+      .then((data) => { if (data.success) setQuestions(data.data.items); });
+  }, []);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
-      const body = { ...values, startTime: values.startTime?.toISOString(), endTime: values.endTime?.toISOString() };
+      const body = {
+        ...values,
+        questions: (values.questionIds || []).map((questionId: number) => ({
+          questionId,
+          score: Number(questions.find((question) => question.id === questionId)?.score) || 2,
+        })),
+        startTime: values.startTime?.toISOString(),
+        endTime: values.endTime?.toISOString(),
+      };
       const url = editingPaper ? `/api/papers/${editingPaper.id}` : "/api/papers";
       const method = editingPaper ? "PUT" : "POST";
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -40,8 +55,32 @@ export default function ExamPapersPage() {
   };
 
   const handlePublish = async (id: number) => {
-    await fetch(`/api/papers/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "published" }) });
-    message.success("考试已发布！学员端可见"); fetchPapers();
+    const res = await fetch(`/api/papers/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "published" }) });
+    const data = await res.json();
+    if (data.success) { message.success("考试已发布！学员端可见"); fetchPapers(); }
+    else message.error(data.message || "发布失败");
+  };
+
+  const handleEdit = async (paper: Record<string, unknown>) => {
+    const res = await fetch(`/api/papers/${paper.id}`);
+    const data = await res.json();
+    if (!data.success) return message.error(data.message || "加载试卷失败");
+    const detail = data.data;
+    setEditingPaper(detail);
+    form.setFieldsValue({
+      ...detail,
+      questionIds: detail.paperQuestions.map((item: { questionId: number }) => item.questionId),
+      startTime: detail.startTime ? dayjs(detail.startTime) : null,
+      endTime: detail.endTime ? dayjs(detail.endTime) : null,
+    });
+    setDrawerOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    const res = await fetch(`/api/papers/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.success) { message.success("删除成功"); fetchPapers(); }
+    else message.error(data.message || "删除失败");
   };
 
   const columns = [
@@ -53,9 +92,9 @@ export default function ExamPapersPage() {
     { title: "状态", dataIndex: "status", key: "status", render: (s: string) => <Tag color={s === "published" ? "green" : s === "draft" ? "default" : "red"}>{s === "published" ? "已发布" : s === "draft" ? "草稿" : "已关闭"}</Tag> },
     { title: "操作", key: "actions", render: (_: unknown, r: Record<string, unknown>) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => { setEditingPaper(r); form.setFieldsValue({ ...r, startTime: r.startTime ? dayjs(r.startTime as string) : null, endTime: r.endTime ? dayjs(r.endTime as string) : null }); setDrawerOpen(true); }}><EditOutlined /> 编辑</Button>
+          <Button type="link" size="small" onClick={() => handleEdit(r)}><EditOutlined /> 编辑</Button>
           {r.status === "draft" && <Button type="link" size="small" onClick={() => handlePublish(r.id as number)}><SendOutlined /> 发布</Button>}
-          <Popconfirm title="确定删除？" onConfirm={() => fetch(`/api/papers/${r.id}`, { method: "DELETE" }).then(() => { message.success("删除成功"); fetchPapers(); })}>
+          <Popconfirm title="确定删除？该试卷的考试记录也会删除。" onConfirm={() => handleDelete(r.id as number)}>
             <Button type="link" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -96,6 +135,14 @@ export default function ExamPapersPage() {
             <Col span={12}><Form.Item name="startTime" label="开始时间"><DatePicker showTime style={{ width: "100%" }} /></Form.Item></Col>
             <Col span={12}><Form.Item name="endTime" label="结束时间"><DatePicker showTime style={{ width: "100%" }} /></Form.Item></Col>
           </Row>
+          <Form.Item name="questionIds" label="选择题目" rules={[{ required: true, message: "请至少选择一道题目" }]}
+            help={`已选择题目的分值合计：${selectedQuestionIds.reduce((sum, id) => sum + (Number(questions.find((q) => q.id === id)?.score) || 2), 0)} 分`}>
+            <Select mode="multiple" showSearch optionFilterProp="label" placeholder="从题库中选择题目"
+              options={questions.map((question) => ({
+                value: question.id as number,
+                label: `[${question.category}] ${question.content}（${question.score}分）`,
+              }))} />
+          </Form.Item>
           <Card size="small" title="考试设置" style={{ marginBottom: 16 }}>
             <Row gutter={16}>
               <Col span={8}><Form.Item name="shuffleQuestions" label="随机排序" valuePropName="checked"><Switch /></Form.Item></Col>

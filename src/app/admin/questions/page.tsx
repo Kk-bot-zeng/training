@@ -40,9 +40,15 @@ export default function QuestionsPage() {
     try {
       const values = await form.validateFields();
       setSubmitting(true);
+      const payload = {
+        ...values,
+        options: values.optionsStr
+          ? values.optionsStr.split("|").map((option: string) => option.trim()).filter(Boolean)
+          : null,
+      };
       const url = editingQ ? `/api/questions/${editingQ.id}` : "/api/questions";
       const method = editingQ ? "PUT" : "POST";
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) { message.success(editingQ ? "更新成功" : "创建成功"); setDrawerOpen(false); form.resetFields(); setEditingQ(null); fetchQuestions(); }
       else message.error(data.message);

@@ -100,7 +100,7 @@ export default function ExamTakingPage() {
       const data = await res.json();
       if (data.success) {
         message.success(auto ? "⏰ 时间到，已自动交卷" : "交卷成功！");
-        router.push(`/portal/scores/${attempt?.id}`);
+        router.push("/portal/scores");
       } else message.error(data.message);
     } catch { message.error("提交失败"); } finally { setSubmitting(false); }
   }, [submitting, answers, attempt, paper, switchCount, router]);

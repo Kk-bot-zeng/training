@@ -1,35 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Table, Tag, Spin } from "antd";
-import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { fetcher, swrConfig } from "@/lib/fetcher";
+
+type Attempt = {
+  id: number;
+  score: number | null;
+  totalScore: number;
+  status: string;
+  endTime: string | null;
+  createdAt: string;
+  paper: { title: string; passScore: number; totalScore: number };
+};
 
 export default function ScoresPage() {
-  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const { data: attempts, isLoading } = useSWR<Attempt[]>("/api/attempts", fetcher, swrConfig);
 
-  useEffect(() => {
-    fetch("/api/auth/me").then(r => r.json()).then(async userData => {
-      if (!userData.success) return;
-      // Fetch papers + attempts via overview stats
-      // For simplicity, let's load papers and check attempts
-      const papersRes = await fetch("/api/papers");
-      const papersData = await papersRes.json();
-      if (!papersData.success) return setLoading(false);
+  if (isLoading) {
+    return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
+  }
 
-      const results: Record<string, unknown>[] = [];
-      for (const p of papersData.data) {
-        // Try to find attempts for this user
-        const detailRes = await fetch(`/api/statistics/employee?employeeId=${userData.data.id}`);
-        // This won't give us exam attempts directly. Let me use a different approach.
-      }
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
+  const columns = [
+    { title: "考试名称", dataIndex: ["paper", "title"], key: "title" },
+    {
+      title: "成绩", key: "score",
+      render: (_: unknown, record: Attempt) => record.score === null ? "待批改" : `${record.score} / ${record.totalScore}`,
+    },
+    {
+      title: "结果", key: "result",
+      render: (_: unknown, record: Attempt) => {
+        if (record.score === null) return <Tag>待批改</Tag>;
+        const passed = record.score >= record.paper.passScore;
+        return <Tag color={passed ? "green" : "red"}>{passed ? "及格" : "未及格"}</Tag>;
+      },
+    },
+    {
+      title: "提交时间", key: "time",
+      render: (_: unknown, record: Attempt) => dayjs(record.endTime || record.createdAt).format("YYYY-MM-DD HH:mm"),
+    },
+  ];
 
   return (
     <div style={{ maxWidth: 800 }}>
@@ -37,8 +48,9 @@ export default function ScoresPage() {
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>成绩记录</h1>
         <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>查看你的考试历史成绩</p>
       </div>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 40, textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <p style={{ color: "#9ca3af" }}>完成考试后，成绩将显示在这里</p>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "4px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <Table dataSource={attempts || []} columns={columns} rowKey="id" pagination={{ pageSize: 20 }}
+          locale={{ emptyText: "暂无考试成绩" }} />
       </div>
     </div>
   );
