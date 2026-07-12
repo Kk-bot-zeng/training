@@ -20,6 +20,7 @@ export default function QuestionsPage() {
   const [search, setSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [form] = Form.useForm();
+  const questionType = Form.useWatch("type", form);
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -148,7 +149,9 @@ export default function QuestionsPage() {
           <Form.Item name="optionsStr" label="选项（用 | 分隔）" help="例：A.6个月|B.12个月|C.18个月|D.24个月">
             <Input.TextArea rows={3} placeholder="判断题留空会自动生成正确/错误选项" />
           </Form.Item>
-          <Form.Item name="answer" label="答案" rules={[{ required: true }]} help="单选填字母(A/B/C/D)，多选用逗号分隔(A,C)，判断填对/错">
+          <Form.Item name="answer" label={questionType === "essay" ? "参考答案（选填）" : "答案"}
+            rules={[{ required: questionType !== "essay", message: "请填写客观题答案" }]}
+            help={questionType === "essay" ? "问答题由管理员阅卷评分，可选填评分参考" : "单选填字母(A/B/C/D)，多选用逗号分隔(A,C)，判断填对/错"}>
             <Input placeholder="如：B" />
           </Form.Item>
           <Form.Item name="score" label="分值"><InputNumber min={1} max={100} /></Form.Item>

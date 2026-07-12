@@ -12,6 +12,7 @@ type Attempt = {
   status: string;
   endTime: string | null;
   createdAt: string;
+  pendingManualGrading: boolean;
   paper: { title: string; passScore: number; totalScore: number };
 };
 
@@ -31,7 +32,7 @@ export default function ScoresPage() {
     {
       title: "结果", key: "result",
       render: (_: unknown, record: Attempt) => {
-        if (record.score === null) return <Tag>待批改</Tag>;
+        if (record.score === null || record.pendingManualGrading) return <Tag color="orange">问答题待批改</Tag>;
         const passed = record.score >= record.paper.passScore;
         return <Tag color={passed ? "green" : "red"}>{passed ? "及格" : "未及格"}</Tag>;
       },

@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { type, category, difficulty, content, options, optionsStr, answer, score, analysis } = body;
-    if (!type || !content || !answer) {
-      return NextResponse.json({ success: false, message: "题型/题目/答案不能为空" }, { status: 400 });
+    if (!type || !content || (type !== "essay" && !answer)) {
+      return NextResponse.json({ success: false, message: "题型、题目和客观题答案不能为空" }, { status: 400 });
     }
     const normalizedOptions = Array.isArray(options)
       ? options
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       data: {
         type, category: category || "通用", difficulty: difficulty || "medium",
         content, options: normalizedOptions.length ? JSON.stringify(normalizedOptions) : null,
-        answer, score: score || 2, analysis: analysis || null,
+        answer: answer || "", score: score || 2, analysis: analysis || null,
       },
     });
     return NextResponse.json({ success: true, data: q });

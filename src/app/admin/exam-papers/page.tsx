@@ -11,11 +11,13 @@ type AttemptDetail = {
   questionId: number;
   questionNo: number;
   content: string;
+  type: string;
   userAnswer: string;
   correctAnswer: string;
   isCorrect: boolean | null;
   score: number;
   maxScore: number;
+  manuallyGraded: boolean;
 };
 
 type ResultAttempt = {
@@ -49,6 +51,8 @@ export default function ExamPapersPage() {
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsData, setResultsData] = useState<{ paper: Record<string, unknown>; summary: { learnerCount: number; attemptCount: number }; results: LearnerResult[] } | null>(null);
   const [selectedAttempt, setSelectedAttempt] = useState<ResultAttempt | null>(null);
+  const [gradeScores, setGradeScores] = useState<Record<number, number>>({});
+  const [grading, setGrading] = useState(false);
   const [form] = Form.useForm();
   const selectedQuestionIds: number[] = Form.useWatch("questionIds", form) || [];
 
@@ -132,15 +136,44 @@ export default function ExamPapersPage() {
     }
   };
 
+  const openAttemptDetail = (attempt: ResultAttempt) => {
+    setSelectedAttempt(attempt);
+    setGradeScores(Object.fromEntries(
+      attempt.details.filter((detail) => detail.type === "essay").map((detail) => [detail.questionId, detail.score || 0])
+    ));
+  };
+
+  const saveEssayGrades = async () => {
+    if (!selectedAttempt || !resultsData) return;
+    setGrading(true);
+    try {
+      const grades = selectedAttempt.details
+        .filter((detail) => detail.type === "essay")
+        .map((detail) => ({ questionId: detail.questionId, score: gradeScores[detail.questionId] || 0 }));
+      const res = await fetch(`/api/attempts/${selectedAttempt.id}/grade`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ grades }),
+      });
+      const data = await res.json();
+      if (!data.success) return message.error(data.message || "保存评分失败");
+      message.success("评分已保存，总成绩已重新计算");
+      setSelectedAttempt(null);
+      await handleResults(resultsData.paper);
+    } finally {
+      setGrading(false);
+    }
+  };
+
   const columns = [
-    { title: "试卷标题", dataIndex: "title", key: "title", ellipsis: true },
-    { title: "类型", dataIndex: "type", key: "type", render: (t: string) => <Tag color={t === "timed" ? "blue" : "green"}>{typeLabels[t]}</Tag> },
-    { title: "时长", dataIndex: "duration", key: "duration", render: (d: number) => `${d}分钟` },
-    { title: "及格分", dataIndex: "passScore", key: "passScore" },
-    { title: "总题数", key: "qCount", render: (_: unknown, r: Record<string, unknown>) => (r._count as { paperQuestions: number })?.paperQuestions || 0 },
-    { title: "状态", dataIndex: "status", key: "status", render: (s: string) => <Tag color={s === "published" ? "green" : s === "draft" ? "default" : "red"}>{s === "published" ? "已发布" : s === "draft" ? "草稿" : "已关闭"}</Tag> },
-    { title: "操作", key: "actions", render: (_: unknown, r: Record<string, unknown>) => (
-        <Space size="small">
+    { title: "试卷标题", dataIndex: "title", key: "title", ellipsis: true, width: 220 },
+    { title: "类型", dataIndex: "type", key: "type", width: 120, render: (t: string) => <Tag color={t === "timed" ? "blue" : "green"}>{typeLabels[t]}</Tag> },
+    { title: "时长", dataIndex: "duration", key: "duration", width: 100, render: (d: number) => `${d}分钟` },
+    { title: "及格分", dataIndex: "passScore", key: "passScore", width: 90 },
+    { title: "总题数", key: "qCount", width: 90, render: (_: unknown, r: Record<string, unknown>) => (r._count as { paperQuestions: number })?.paperQuestions || 0 },
+    { title: "状态", dataIndex: "status", key: "status", width: 100, render: (s: string) => <Tag color={s === "published" ? "green" : s === "draft" ? "default" : "red"}>{s === "published" ? "已发布" : s === "draft" ? "草稿" : "已关闭"}</Tag> },
+    { title: "操作", key: "actions", width: 300, fixed: "right" as const, render: (_: unknown, r: Record<string, unknown>) => (
+        <Space size={0} wrap>
           <Button type="link" size="small" onClick={() => handleResults(r)}><BarChartOutlined /> 成绩</Button>
           <Button type="link" size="small" onClick={() => handleEdit(r)}><EditOutlined /> 编辑</Button>
           {r.status === "draft" && <Button type="link" size="small" onClick={() => handlePublish(r.id as number)}><SendOutlined /> 发布</Button>}
@@ -164,7 +197,7 @@ export default function ExamPapersPage() {
 
       <div style={{ background: "#fff", borderRadius: 16, padding: "4px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <Table dataSource={papers} columns={columns} rowKey="id" loading={loading}
-          pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" />
+          pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" scroll={{ x: 1020 }} />
       </div>
 
       <Drawer title={editingPaper ? "编辑试卷" : "创建试卷"} open={drawerOpen} width={560}
@@ -233,7 +266,7 @@ export default function ExamPapersPage() {
                       { title: "成绩", key: "score", render: (_value, attempt) => `${attempt.score ?? 0} / ${attempt.totalScore}` },
                       { title: "错题数", dataIndex: "wrongCount", key: "wrongCount", render: (count: number) => <Tag color={count ? "red" : "green"}>{count} 题</Tag> },
                       { title: "提交时间", dataIndex: "endTime", key: "endTime", render: (time: string) => dayjs(time).format("YYYY-MM-DD HH:mm:ss") },
-                      { title: "答题详情", key: "detail", render: (_value, attempt) => <Button type="link" onClick={() => setSelectedAttempt(attempt)}>查看每道题</Button> },
+                      { title: "答题详情", key: "detail", render: (_value, attempt) => <Button type="link" onClick={() => openAttemptDetail(attempt)}>查看每道题/评分</Button> },
                     ]} />
                 ),
               }} />
@@ -241,7 +274,10 @@ export default function ExamPapersPage() {
         )}
       </Drawer>
 
-      <Modal title="答题详情" open={Boolean(selectedAttempt)} width={900} footer={null}
+      <Modal title="答题详情与问答题评分" open={Boolean(selectedAttempt)} width={1000}
+        footer={<Button type="primary" loading={grading} onClick={saveEssayGrades}>
+          {selectedAttempt?.details.some((detail) => detail.type === "essay") ? "保存评分并重新计算总分" : "按新规则重新判分"}
+        </Button>}
         onCancel={() => setSelectedAttempt(null)}>
         <Table<AttemptDetail> dataSource={selectedAttempt?.details || []} rowKey="questionId" pagination={false} scroll={{ y: 520 }}
           columns={[
@@ -249,8 +285,14 @@ export default function ExamPapersPage() {
             { title: "题目", dataIndex: "content", key: "content", ellipsis: true },
             { title: "学员答案", dataIndex: "userAnswer", key: "userAnswer", render: (answer: string) => answer || "未作答" },
             { title: "正确答案", dataIndex: "correctAnswer", key: "correctAnswer" },
-            { title: "结果", dataIndex: "isCorrect", key: "isCorrect", width: 90, render: (correct: boolean | null) => correct === null ? <Tag>待批改</Tag> : <Tag color={correct ? "green" : "red"}>{correct ? "正确" : "错误"}</Tag> },
-            { title: "得分", key: "score", width: 90, render: (_value, detail) => `${detail.score}/${detail.maxScore}` },
+            { title: "结果", key: "result", width: 100, render: (_value, detail) => detail.type === "essay"
+              ? <Tag color={detail.manuallyGraded ? "blue" : "orange"}>{detail.manuallyGraded ? "已评分" : "待评分"}</Tag>
+              : <Tag color={detail.isCorrect ? "green" : "red"}>{detail.isCorrect ? "正确" : "错误"}</Tag> },
+            { title: "得分", key: "score", width: 150, render: (_value, detail) => detail.type === "essay"
+              ? <InputNumber min={0} max={detail.maxScore} value={gradeScores[detail.questionId] || 0}
+                  onChange={(score) => setGradeScores((current) => ({ ...current, [detail.questionId]: Number(score) || 0 }))}
+                  addonAfter={`/ ${detail.maxScore}`} />
+              : `${detail.score}/${detail.maxScore}` },
           ]} />
       </Modal>
     </div>

@@ -7,6 +7,7 @@ type StoredAnswer = {
   userAnswer: string;
   isCorrect: boolean | null;
   score: number;
+  manuallyGraded?: boolean;
 };
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -84,6 +85,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           userAnswer: answer.userAnswer,
           correctAnswer: item?.question.answer || "",
           isCorrect: answer.isCorrect,
+          manuallyGraded: answer.manuallyGraded || false,
           score: answer.score,
           maxScore: item?.score || 0,
         };

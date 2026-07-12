@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
+function normalizeSingle(value: string): string {
+  const normalized = value.trim().toUpperCase();
+  const optionLetter = normalized.match(/^([A-Z])(?:[.、:：\s]|$)/);
+  return optionLetter ? optionLetter[1] : normalized;
+}
+
+function normalizeJudge(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (["正确", "对", "是", "true", "yes", "√"].includes(normalized)) return "true";
+  if (["错误", "错", "否", "false", "no", "×", "x"].includes(normalized)) return "false";
+  return normalized;
+}
+
+function isObjectiveAnswerCorrect(type: string, userAnswer: string, correctAnswer: string): boolean {
+  if (type === "multi") {
+    const normalize = (value: string) => value
+      .split(/[,，、]/)
+      .map(normalizeSingle)
+      .filter(Boolean)
+      .sort()
+      .join(",");
+    return normalize(userAnswer) === normalize(correctAnswer);
+  }
+  if (type === "judge") return normalizeJudge(userAnswer) === normalizeJudge(correctAnswer);
+  return normalizeSingle(userAnswer) === normalizeSingle(correctAnswer);
+}
+
 export async function GET() {
   try {
     const user = await getAuthUser();
@@ -12,7 +39,19 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json({ success: true, data: attempts });
+    return NextResponse.json({
+      success: true,
+      data: attempts.map((attempt) => {
+        let pendingManualGrading = false;
+        try {
+          const answers = attempt.answers ? JSON.parse(attempt.answers) : [];
+          pendingManualGrading = answers.some((answer: { isCorrect: boolean | null; manuallyGraded?: boolean }) =>
+            answer.isCorrect === null && !answer.manuallyGraded
+          );
+        } catch {}
+        return { ...attempt, pendingManualGrading };
+      }),
+    });
   } catch (e: unknown) {
     if (e instanceof Error && e.message === "Unauthorized") {
       return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
@@ -91,7 +130,9 @@ export async function PUT(request: NextRequest) {
       const pq = questionMap.get(a.questionId);
       if (!pq) return { ...a, isCorrect: false, score: 0 };
       const q = pq.question;
-      const isCorrect = q.type !== "essay" ? (a.userAnswer.trim().toUpperCase() === q.answer.trim().toUpperCase()) : null;
+      const isCorrect = q.type !== "essay"
+        ? isObjectiveAnswerCorrect(q.type, a.userAnswer, q.answer)
+        : null;
       const score = isCorrect === true ? pq.score : (isCorrect === false ? 0 : 0);
       if (score > 0) totalScore += score;
       return { questionId: a.questionId, userAnswer: a.userAnswer, isCorrect, score };

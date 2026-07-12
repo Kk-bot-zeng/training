@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.difficulty) data.difficulty = body.difficulty;
     if (body.content) data.content = body.content;
     if (normalizedOptions !== null) data.options = normalizedOptions.length ? JSON.stringify(normalizedOptions) : null;
-    if (body.answer) data.answer = body.answer;
+    if (body.answer !== undefined) data.answer = body.answer || "";
     if (body.score !== undefined) data.score = body.score;
     if (body.analysis !== undefined) data.analysis = body.analysis;
     const q = await prisma.examQuestion.update({ where: { id: parseInt(id) }, data });
