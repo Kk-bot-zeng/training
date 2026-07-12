@@ -28,6 +28,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.endTime) data.endTime = new Date(body.endTime);
 
     const questions = Array.isArray(body.questions) ? body.questions : null;
+    if (questions && questions.length > 0) {
+      const selectedQuestions = await prisma.examQuestion.findMany({
+        where: { id: { in: questions.map((question: { questionId: number }) => question.questionId) } },
+        select: { id: true, type: true, options: true },
+      });
+      const invalid = selectedQuestions.find((question) =>
+        ["single", "multi"].includes(question.type) && !question.options
+      );
+      if (invalid) {
+        return NextResponse.json(
+          { success: false, message: "试卷中有选择题未填写选项，请先到题库编辑补充" },
+          { status: 400 }
+        );
+      }
+    }
     const questionCount = questions
       ? questions.length
       : await prisma.examPaperQuestion.count({ where: { paperId } });

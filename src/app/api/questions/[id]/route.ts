@@ -5,12 +5,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
+    const normalizedOptions = Array.isArray(body.options)
+      ? body.options
+      : typeof body.optionsStr === "string"
+        ? body.optionsStr.split("|").map((option: string) => option.trim()).filter(Boolean)
+        : null;
+    if (["single", "multi"].includes(body.type) && (!normalizedOptions || normalizedOptions.length < 2)) {
+      return NextResponse.json(
+        { success: false, message: "单选题和多选题请至少填写两个选项" },
+        { status: 400 }
+      );
+    }
     const data: Record<string, unknown> = {};
     if (body.type) data.type = body.type;
     if (body.category) data.category = body.category;
     if (body.difficulty) data.difficulty = body.difficulty;
     if (body.content) data.content = body.content;
-    if (body.options !== undefined) data.options = typeof body.options === "string" ? body.options : JSON.stringify(body.options);
+    if (normalizedOptions !== null) data.options = normalizedOptions.length ? JSON.stringify(normalizedOptions) : null;
     if (body.answer) data.answer = body.answer;
     if (body.score !== undefined) data.score = body.score;
     if (body.analysis !== undefined) data.analysis = body.analysis;

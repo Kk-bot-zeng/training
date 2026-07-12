@@ -32,14 +32,25 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, category, difficulty, content, options, answer, score, analysis } = body;
+    const { type, category, difficulty, content, options, optionsStr, answer, score, analysis } = body;
     if (!type || !content || !answer) {
       return NextResponse.json({ success: false, message: "题型/题目/答案不能为空" }, { status: 400 });
+    }
+    const normalizedOptions = Array.isArray(options)
+      ? options
+      : typeof optionsStr === "string"
+        ? optionsStr.split("|").map((option: string) => option.trim()).filter(Boolean)
+        : [];
+    if (["single", "multi"].includes(type) && normalizedOptions.length < 2) {
+      return NextResponse.json(
+        { success: false, message: "单选题和多选题请至少填写两个选项" },
+        { status: 400 }
+      );
     }
     const q = await prisma.examQuestion.create({
       data: {
         type, category: category || "通用", difficulty: difficulty || "medium",
-        content, options: options ? JSON.stringify(options) : null,
+        content, options: normalizedOptions.length ? JSON.stringify(normalizedOptions) : null,
         answer, score: score || 2, analysis: analysis || null,
       },
     });

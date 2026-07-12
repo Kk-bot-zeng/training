@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, message, Spin } from "antd";
+import { Alert, Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, message, Spin } from "antd";
 import { ClockCircleOutlined, CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -148,6 +148,10 @@ export default function ExamTakingPage() {
                 <span style={{ marginLeft: 8, color: "#9ca3af", fontSize: 12 }}>第 {currentIdx + 1}/{questions.length} 题</span>
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", marginBottom: 20, lineHeight: 1.6 }}>{q.content as string}</h3>
+
+              {["single", "multi"].includes(q.type as string) && options.length === 0 && (
+                <Alert type="error" showIcon message="该题未配置选项，请联系管理员在题库中补充后重新考试" />
+              )}
 
               {q.type === "essay" ? (
                 <Input.TextArea rows={6} value={answers[q.id as number] || ""}
