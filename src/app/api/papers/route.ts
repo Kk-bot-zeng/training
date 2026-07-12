@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     const status = request.nextUrl.searchParams.get("status");
+    if (status === "published") {
+      const user = await getAuthUser();
+      if (user.role === "employee") {
+        const papers = await prisma.examPaper.findMany({
+          where: { status: "published" },
+          include: {
+            attempts: {
+              where: { employeeId: user.id },
+              select: { status: true },
+            },
+            _count: { select: { paperQuestions: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        return NextResponse.json({
+          success: true,
+          data: papers.map(({ attempts, ...paper }) => {
+            const completedAttempts = attempts.filter((attempt) => attempt.status === "submitted").length;
+            return {
+              ...paper,
+              completedAttempts,
+              canAttempt: paper.allowRetake || completedAttempts === 0,
+            };
+          }),
+        });
+      }
+    }
     const papers = await prisma.examPaper.findMany({
       where: status ? { status } : undefined,
       include: { _count: { select: { paperQuestions: true, attempts: true } } },

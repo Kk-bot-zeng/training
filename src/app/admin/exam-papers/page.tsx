@@ -147,7 +147,7 @@ export default function ExamPapersPage() {
             <Row gutter={16}>
               <Col span={8}><Form.Item name="shuffleQuestions" label="随机排序" valuePropName="checked"><Switch /></Form.Item></Col>
               <Col span={8}><Form.Item name="shuffleOptions" label="选项乱序" valuePropName="checked"><Switch /></Form.Item></Col>
-              <Col span={8}><Form.Item name="allowRetake" label="允许补考" valuePropName="checked"><Switch /></Form.Item></Col>
+              <Col span={8}><Form.Item name="allowRetake" label="允许重复考试" valuePropName="checked" tooltip="开启后学员可反复练习；关闭后每名学员只能提交一次"><Switch /></Form.Item></Col>
             </Row>
             <Form.Item name="maxSwitch" label="切屏次数上限（超过强制交卷）"><InputNumber min={1} max={20} /></Form.Item>
           </Card>

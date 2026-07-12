@@ -26,20 +26,27 @@ export default function ExamListPage() {
           <p style={{ color: "#9ca3af", fontSize: 16 }}>暂无考试安排</p>
         </Card>
       ) : (
-        <List grid={{ gutter: 16, xs: 1, sm: 1, md: 2 }} dataSource={published} renderItem={(e: Record<string, unknown>) => (
+        <List grid={{ gutter: 16, xs: 1, sm: 1, md: 2 }} dataSource={published} renderItem={(e: Record<string, unknown>) => {
+          const canAttempt = e.canAttempt !== false;
+          return (
           <List.Item>
-            <Card hoverable style={{ borderRadius: 16 }} onClick={() => router.push(`/portal/exams/${e.id}`)}
+            <Card hoverable={canAttempt} style={{ borderRadius: 16, opacity: canAttempt ? 1 : 0.72 }}
+              onClick={() => { if (canAttempt) router.push(`/portal/exams/${e.id}`); }}
               title={<span style={{ fontSize: 15, fontWeight: 600 }}>{e.title as string}</span>}
               extra={<Tag color={e.type === "timed" ? "blue" : "green"}>{e.type === "timed" ? "定时考试" : "模拟练习"}</Tag>}>
               <div style={{ color: "#6b7280", fontSize: 13, lineHeight: 2 }}>
                 <div>⏱ 时长：{e.duration as number}分钟</div>
                 <div>✅ 及格：{e.passScore as number}分</div>
+                <div>{e.allowRetake ? "↻ 可重复练习" : "① 仅可参加一次"}</div>
                 {(e.startTime as string) && <div>🕐 {dayjs(e.startTime as string).format("MM/DD HH:mm")}</div>}
               </div>
-              <Button type="primary" block style={{ marginTop: 12, borderRadius: 10 }}>开始考试</Button>
+              <Button type="primary" block disabled={!canAttempt} style={{ marginTop: 12, borderRadius: 10 }}>
+                {canAttempt ? ((e.completedAttempts as number) > 0 ? "再次练习" : "开始考试") : "已完成，不可重复考试"}
+              </Button>
             </Card>
           </List.Item>
-        )} />
+        );
+        }} />
       )}
     </div>
   );

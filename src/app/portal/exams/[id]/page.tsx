@@ -46,6 +46,10 @@ export default function ExamTakingPage() {
               setAnswers(map);
             } catch {}
           }
+        } else {
+          message.warning(attData.message || "当前不能参加该考试");
+          setPaper(null);
+          router.replace("/portal/exams");
         }
       } catch { message.error("加载失败"); } finally { setLoading(false); }
     };

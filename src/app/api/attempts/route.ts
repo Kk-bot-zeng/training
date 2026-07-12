@@ -26,6 +26,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser();
+    if (user.role !== "employee") {
+      return NextResponse.json({ success: false, message: "仅学员可以参加考试" }, { status: 403 });
+    }
     const { paperId } = await request.json();
     if (!paperId) return NextResponse.json({ success: false, message: "缺少试卷ID" }, { status: 400 });
 
@@ -39,6 +42,19 @@ export async function POST(request: NextRequest) {
       where: { paperId, employeeId: user.id, status: { not: "submitted" } },
     });
     if (existing) return NextResponse.json({ success: true, data: existing });
+
+    if (!paper.allowRetake) {
+      const submitted = await prisma.examAttempt.findFirst({
+        where: { paperId, employeeId: user.id, status: "submitted" },
+        select: { id: true },
+      });
+      if (submitted) {
+        return NextResponse.json(
+          { success: false, message: "该考试只能参加一次，你已完成考试" },
+          { status: 409 }
+        );
+      }
+    }
 
     const attempt = await prisma.examAttempt.create({
       data: { paperId, employeeId: user.id, totalScore: paper.totalScore },
