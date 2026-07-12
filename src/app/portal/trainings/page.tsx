@@ -1,27 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Table, Tag, Spin } from "antd";
 import dayjs from "dayjs";
+import { fetcher, swrConfig } from "@/lib/fetcher";
 
 const statusLabels: Record<string, string> = { present: "出席", late: "迟到", leave: "请假", absent: "缺勤" };
 const statusColors: Record<string, string> = { present: "green", late: "orange", leave: "blue", absent: "red" };
 
 export default function MyTrainingsPage() {
-  const [records, setRecords] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useSWR("/api/statistics/employee", fetcher, swrConfig);
+  const records = data?.records || [];
 
-  useEffect(() => {
-    fetch("/api/auth/me").then(r => r.json()).then(async user => {
-      if (!user.success) return;
-      const res = await fetch(`/api/statistics/employee?employeeId=${user.data.id}`);
-      const d = await res.json();
-      if (d.success) setRecords(d.data.records || []);
-      setLoading(false);
-    });
-  }, []);
-
-  if (loading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
+  if (isLoading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
 
   const columns = [
     { title: "培训名称", dataIndex: ["training", "title"], key: "title" },

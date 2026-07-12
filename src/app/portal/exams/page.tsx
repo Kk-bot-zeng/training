@@ -8,9 +8,9 @@ import { fetcher, swrConfig } from "@/lib/fetcher";
 
 export default function ExamListPage() {
   const router = useRouter();
-  const { data: exams, isLoading } = useSWR("/api/papers", fetcher, swrConfig);
+  const { data: exams, isLoading } = useSWR("/api/papers?status=published", fetcher, swrConfig);
 
-  const published = exams?.filter((x: Record<string, unknown>) => x.status === "published") || [];
+  const published = exams || [];
 
   return (
     <div style={{ maxWidth: 800 }}>

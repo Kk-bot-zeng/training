@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const employeeId = request.nextUrl.searchParams.get("employeeId");
+    const user = await getAuthUser();
+    const requestedId = request.nextUrl.searchParams.get("employeeId");
+    const employeeId = requestedId || String(user.id);
     if (!employeeId) {
       return NextResponse.json(
         { success: false, message: "缺少员工ID" },
         { status: 400 }
+      );
+    }
+
+    if (user.role !== "admin" && parseInt(employeeId) !== user.id) {
+      return NextResponse.json(
+        { success: false, message: "Forbidden" },
+        { status: 403 }
       );
     }
 

@@ -11,6 +11,7 @@ export const fetcher = (url: string) =>
 // Default SWR config — cache for 30s before background revalidation
 export const swrConfig = {
   revalidateOnFocus: false,
-  dedupingInterval: 5000,
+  dedupingInterval: 30000,
+  keepPreviousData: true,
   errorRetryCount: 2,
 };

@@ -14,17 +14,14 @@ export default function PortalDashboard() {
   const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = stored ? JSON.parse(stored) : null;
 
-  const { data: papers } = useSWR("/api/papers", fetcher, swrConfig);
-  const { data: statsData } = useSWR(
-    user?.id ? `/api/statistics/employee?employeeId=${user.id}` : null,
-    fetcher, swrConfig
-  );
+  const { data: papers } = useSWR("/api/papers?status=published", fetcher, swrConfig);
+  const { data: statsData } = useSWR("/api/statistics/employee", fetcher, swrConfig);
 
-  const exams = papers?.filter((p: Record<string, unknown>) => p.status === "published") || [];
+  const exams = papers || [];
   const records = statsData?.records || [];
   const summary = statsData?.summary || { total: 0, attended: 0, rate: "0%" };
 
-  const isLoading = !papers && !statsData;
+  const isLoading = !papers || !statsData;
 
   const statCards = [
     { title: "已参加培训", value: summary.total || 0, suffix: "场", icon: <BookOutlined />, color: "#667eea", bg: "rgba(102,126,234,0.12)" },

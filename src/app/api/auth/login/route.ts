@@ -13,8 +13,14 @@ export async function POST(request: NextRequest) {
     let token: string;
     let userData: { id: number; name: string; role: string };
 
-    // 1. Try admin login
-    const admin = await prisma.admin.findUnique({ where: { username } });
+    // Run both lookups together to avoid consecutive Neon round trips.
+    const [admin, employee] = await Promise.all([
+      prisma.admin.findUnique({ where: { username } }),
+      prisma.employee.findUnique({
+        where: { employeeNo: username },
+        select: { id: true, name: true, status: true, passwordHash: true },
+      }),
+    ]);
     if (admin) {
       const valid = await bcrypt.compare(password, admin.passwordHash);
       if (!valid) {
@@ -23,12 +29,7 @@ export async function POST(request: NextRequest) {
       token = await signToken({ id: admin.id, username: admin.username, role: "admin" });
       userData = { id: admin.id, name: admin.username, role: "admin" };
     } else {
-      // 2. Try employee login (by employeeNo)
-      const employee = await prisma.employee.findFirst({
-        where: { employeeNo: username, status: "active" },
-        include: { department: true },
-      });
-      if (!employee || !employee.passwordHash) {
+      if (!employee || employee.status !== "active" || !employee.passwordHash) {
         return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
       }
       const valid = await bcrypt.compare(password, employee.passwordHash);

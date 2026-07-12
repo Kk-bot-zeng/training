@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Form, Input, Button, Typography, message } from "antd";
+import { Form, Input, Button, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
-
-const { Text } = Typography;
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -64,8 +62,7 @@ export default function LoginPage() {
           }}>
             T
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1f2937", margin: "0 0 4px" }}>培训考勤系统</h1>
-          <Text type="secondary" style={{ fontSize: 14 }}>管理员登录</Text>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1f2937", margin: 0 }}>雷鸟培训系统</h1>
         </div>
 
         <Form onFinish={onFinish} size="large" layout="vertical">

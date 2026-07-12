@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const status = request.nextUrl.searchParams.get("status");
     const papers = await prisma.examPaper.findMany({
+      where: status ? { status } : undefined,
       include: { _count: { select: { paperQuestions: true, attempts: true } } },
       orderBy: { createdAt: "desc" },
     });
