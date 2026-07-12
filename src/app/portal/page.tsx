@@ -17,7 +17,7 @@ export default function PortalDashboard() {
   const { data: papers } = useSWR("/api/papers?status=published", fetcher, swrConfig);
   const { data: statsData } = useSWR("/api/statistics/employee", fetcher, swrConfig);
 
-  const exams = papers || [];
+  const exams = (papers || []).filter((paper: Record<string, unknown>) => paper.canAttempt !== false);
   const records = statsData?.records || [];
   const summary = statsData?.summary || { total: 0, attended: 0, rate: "0%" };
 
@@ -31,7 +31,7 @@ export default function PortalDashboard() {
   ];
 
   return (
-    <div style={{ maxWidth: 1000 }}>
+    <div style={{ width: "100%" }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>
           👋 {user?.name || "欢迎回来"}

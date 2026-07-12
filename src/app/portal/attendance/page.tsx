@@ -22,7 +22,7 @@ export default function MyAttendancePage() {
   ];
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div style={{ width: "100%" }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>我的考勤</h1>
         <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>查看你的培训出勤记录</p>

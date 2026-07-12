@@ -13,7 +13,7 @@ export default function ExamListPage() {
   const published = exams || [];
 
   return (
-    <div style={{ maxWidth: 800 }}>
+    <div style={{ width: "100%" }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>我的考试</h1>
         <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>参加定时考试或模拟练习</p>
@@ -26,7 +26,7 @@ export default function ExamListPage() {
           <p style={{ color: "#9ca3af", fontSize: 16 }}>暂无考试安排</p>
         </Card>
       ) : (
-        <List grid={{ gutter: 16, xs: 1, sm: 1, md: 2 }} dataSource={published} renderItem={(e: Record<string, unknown>) => {
+        <List grid={{ gutter: 16, xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }} dataSource={published} renderItem={(e: Record<string, unknown>) => {
           const canAttempt = e.canAttempt !== false;
           return (
           <List.Item>
