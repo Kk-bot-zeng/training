@@ -1,4 +1,8 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { issueSignedToken } from "@vercel/blob";
+import {
+  handleUploadPresigned,
+  type HandleUploadPresignedBody,
+} from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getAuthAdmin } from "@/lib/auth";
 
@@ -8,19 +12,13 @@ const ALLOWED_CONTENT_TYPES = [
   "application/pdf",
 ];
 
-function getBlobToken() {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
-
-  const prefixedToken = Object.entries(process.env).find(
-    ([key, value]) => key.endsWith("BLOB_READ_WRITE_TOKEN") && Boolean(value),
-  );
-  return prefixedToken?.[1];
-}
-
 export async function GET() {
   try {
     await getAuthAdmin();
-    return NextResponse.json({ success: true, configured: Boolean(getBlobToken()) });
+    return NextResponse.json({
+      success: true,
+      configured: Boolean(process.env.BLOB_STORE_ID),
+    });
   } catch {
     return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
   }
@@ -28,28 +26,31 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const token = getBlobToken();
-    if (!token) {
+    await getAuthAdmin();
+    if (!process.env.BLOB_STORE_ID) {
       return NextResponse.json(
-        { error: "Vercel Blob 读写令牌尚未配置到当前生产环境" },
+        { error: "Vercel Blob Store 尚未连接到当前生产环境" },
         { status: 503 },
       );
     }
-    const body = (await request.json()) as HandleUploadBody;
-    const response = await handleUpload({
-      token,
+
+    const body = (await request.json()) as HandleUploadPresignedBody;
+    const response = await handleUploadPresigned({
       body,
       request,
-      onBeforeGenerateToken: async (pathname) => {
-        await getAuthAdmin();
-        return {
+      getSignedToken: async (pathname) => ({
+        token: await issueSignedToken({
+          storeId: process.env.BLOB_STORE_ID,
+          pathname,
+          operations: ["put"],
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
           maximumSizeInBytes: 50 * 1024 * 1024,
+        }),
+        urlOptions: {
+          access: "public",
           addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ pathname }),
-        };
-      },
-      onUploadCompleted: async () => {},
+        },
+      }),
     });
     return NextResponse.json(response);
   } catch (error) {

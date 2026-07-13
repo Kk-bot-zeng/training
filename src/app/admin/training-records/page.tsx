@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Table, Button, Drawer, Form, Input, Select, DatePicker, InputNumber, Space, Tag, message, Popconfirm, Radio, Upload, Descriptions } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, ImportOutlined, EyeOutlined, LinkOutlined, PlayCircleOutlined, FileTextOutlined, UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { upload } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 
 const formatLabels: Record<string, string> = { online: "线上", offline: "线下", hybrid: "混合" };
 const formatColors: Record<string, string> = { online: "blue", offline: "green", hybrid: "purple" };
@@ -81,7 +81,7 @@ export default function TrainingRecordsPage() {
       if (!statusResponse.ok || !status.configured) {
         throw new Error(status.message || "Vercel Blob 读写令牌尚未配置到生产环境");
       }
-      const blob = await upload(`training-materials/${file.name}`, file, {
+      const blob = await uploadPresigned(`training-materials/${file.name}`, file, {
         access: "public",
         handleUploadUrl: "/api/uploads/materials",
         multipart: true,
