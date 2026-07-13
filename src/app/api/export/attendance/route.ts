@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import ExcelJS from "exceljs";
 import dayjs from "dayjs";
+import { getAuthAdmin } from "@/lib/auth";
 
 const statusMap: Record<string, string> = {
   present: "出席", late: "迟到", leave: "请假", absent: "缺席",
@@ -27,6 +28,7 @@ function styleRow(row: ExcelJS.Row, isEven: boolean) {
 
 export async function GET(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const { searchParams } = new URL(request.url);
     const trainingId = searchParams.get("trainingId");
     const startDate = searchParams.get("startDate");
@@ -185,7 +187,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="考勤报表_${dayjs().format("YYYYMMDD")}.xlsx"`,
+        "Content-Disposition": `attachment; filename="attendance_report_${dayjs().format("YYYYMMDD")}.xlsx"; filename*=UTF-8''${encodeURIComponent(`考勤报表_${dayjs().format("YYYYMMDD")}.xlsx`)}`,
       },
     });
   } catch (error) {

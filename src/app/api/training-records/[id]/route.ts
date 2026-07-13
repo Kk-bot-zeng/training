@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const body = await request.json();
 
@@ -32,6 +34,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     await prisma.trainingRecord.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ success: true, message: "删除成功" });

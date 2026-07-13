@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import ExcelJS from "exceljs";
 import dayjs from "dayjs";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
+    await getAuthAdmin();
     const employees = await prisma.employee.findMany({
       where: { status: "active" },
       include: { department: true },
@@ -49,7 +51,7 @@ export async function GET() {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="employees_${dayjs().format("YYYYMMDD")}.xlsx"`,
+        "Content-Disposition": `attachment; filename="employees_${dayjs().format("YYYYMMDD")}.xlsx"; filename*=UTF-8''${encodeURIComponent(`员工花名册_${dayjs().format("YYYYMMDD")}.xlsx`)}`,
       },
     });
   } catch (error) {

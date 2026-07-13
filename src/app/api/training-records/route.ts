@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    await getAuthUser();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status");
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const body = await request.json();
     const { topic, target, date, initiator, format, participantCount, instructor, description, status, materials, recording } = body;
 

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const formData = await request.formData();
     const file = formData.get("file") as File;
     if (!file) return NextResponse.json({ success: false, message: "请选择文件" }, { status: 400 });

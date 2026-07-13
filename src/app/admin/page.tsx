@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import dayjs from "dayjs";
 import type { OverviewStats } from "@/types";
+import { downloadFile } from "@/lib/download";
 
 const { RangePicker } = DatePicker;
 
@@ -58,14 +59,19 @@ export default function DashboardPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!dateRange) { message.warning("请选择日期范围"); return; }
     const [start, end] = dateRange;
-    window.open(
-      `/api/export/attendance?startDate=${start.format("YYYY-MM-DD")}&endDate=${end.format("YYYY-MM-DD")}&type=comprehensive`,
-      "_blank"
-    );
-    setExportOpen(false);
+    try {
+      await downloadFile(
+        `/api/export/attendance?startDate=${start.format("YYYY-MM-DD")}&endDate=${end.format("YYYY-MM-DD")}&type=comprehensive`,
+        `培训考勤综合报表_${dayjs().format("YYYYMMDD")}.xlsx`
+      );
+      message.success("报表已生成");
+      setExportOpen(false);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "导出失败");
+    }
   };
 
   if (loading) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 400 }}><Spin size="large" /></div>;

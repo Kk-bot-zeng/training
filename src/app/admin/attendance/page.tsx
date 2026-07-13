@@ -16,6 +16,7 @@ import {
 } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { downloadFile } from "@/lib/download";
 import type { Training } from "@/types";
 
 const statusColors: Record<string, string> = {
@@ -76,12 +77,17 @@ export default function AttendancePage() {
     fetchData();
   }, [fetchData]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!selectedTrainingId) {
       message.warning("请先选择培训");
       return;
     }
-    window.open(`/api/export/attendance?trainingId=${selectedTrainingId}`, "_blank");
+    try {
+      await downloadFile(`/api/export/attendance?trainingId=${selectedTrainingId}`, `培训考勤记录_${dayjs().format("YYYYMMDD")}.xlsx`);
+      message.success("考勤记录已导出");
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "导出失败");
+    }
   };
 
   const columns = [
