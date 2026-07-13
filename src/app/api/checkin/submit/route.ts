@@ -6,7 +6,9 @@ export async function POST(request: NextRequest) {
   try {
     const { qrToken } = await request.json();
     if (!qrToken) return NextResponse.json({ success: false, message: "参数错误" }, { status: 400 });
-    const [training, binding] = await Promise.all([resolveCheckinAccess(qrToken), getBoundDevice()]);
+    const [training, binding] = await Promise.all([
+      resolveCheckinAccess(qrToken, request.headers.get("x-checkin-session")), getBoundDevice(),
+    ]);
     const window = assertCheckinOpen(training);
     const employee = binding.employee;
     const departmentIds = JSON.parse(training.departmentIds) as number[];

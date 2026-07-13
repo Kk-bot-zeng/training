@@ -6,7 +6,9 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.nextUrl.searchParams.get("qrToken");
     if (!token) return NextResponse.json({ success: false, message: "参数错误" }, { status: 400 });
-    const [training, binding] = await Promise.all([resolveCheckinAccess(token), getBoundDevice()]);
+    const [training, binding] = await Promise.all([
+      resolveCheckinAccess(token, request.headers.get("x-checkin-session")), getBoundDevice(),
+    ]);
     assertCheckinOpen(training);
     const departmentIds = JSON.parse(training.departmentIds) as number[];
     if (!departmentIds.includes(binding.employee.departmentId)) {

@@ -35,9 +35,12 @@ export default function CheckinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [scanSession, setScanSession] = useState("");
 
-  const loadEmployee = async () => {
-    const response = await fetch(`/api/checkin/me?qrToken=${encodeURIComponent(qrToken)}`);
+  const loadEmployee = async (session = scanSession) => {
+    const response = await fetch(`/api/checkin/me?qrToken=${encodeURIComponent(qrToken)}`, {
+      headers: session ? { "x-checkin-session": session } : undefined,
+    });
     const data = await response.json();
     if (data.success) {
       setEmployee(data.data);
@@ -56,7 +59,8 @@ export default function CheckinPage() {
         const data = await response.json();
         if (!data.success) return setError(data.message || "签到二维码无效");
         setTraining(data.data);
-        await loadEmployee();
+        setScanSession(data.data.scanSession || "");
+        await loadEmployee(data.data.scanSession || "");
       } catch {
         setError("网络错误，请重新扫码");
       } finally {
@@ -73,7 +77,7 @@ export default function CheckinPage() {
     try {
       const response = await fetch("/api/checkin/bind", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-checkin-session": scanSession },
         body: JSON.stringify({ qrToken, identifier, password }),
       });
       const data = await response.json();
@@ -82,7 +86,6 @@ export default function CheckinPage() {
       setNeedsBinding(false);
       setPassword("");
       setNotice("当前手机已绑定，90天内扫码无需再次登录");
-      await loadEmployee();
     } finally {
       setSubmitting(false);
     }
@@ -94,7 +97,7 @@ export default function CheckinPage() {
     try {
       const response = await fetch("/api/checkin/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-checkin-session": scanSession },
         body: JSON.stringify({ qrToken }),
       });
       const data = await response.json();

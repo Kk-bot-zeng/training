@@ -28,18 +28,25 @@ export async function createScanSession(trainingId: number, qrVersion: string) {
     .sign(secret);
 }
 
-export async function resolveCheckinAccess(qrToken?: string) {
-  if (qrToken) {
-    try { return await resolveDynamicQrToken(qrToken); } catch {}
-  }
-  const cookieStore = await cookies();
-  const scanToken = cookieStore.get(SCAN_COOKIE)?.value;
-  if (!scanToken) throw new Error("QR_EXPIRED");
+async function resolveScanSession(scanToken: string) {
   const { payload } = await jwtVerify(scanToken, secret);
   if (payload.purpose !== "checkin-scan") throw new Error("QR_EXPIRED");
   const training = await prisma.training.findUnique({ where: { id: Number(payload.trainingId) } });
   if (!training || training.qrToken !== payload.qrVersion) throw new Error("QR_EXPIRED");
   return training;
+}
+
+export async function resolveCheckinAccess(qrToken?: string, explicitScanToken?: string | null) {
+  if (qrToken) {
+    try { return await resolveDynamicQrToken(qrToken); } catch {}
+  }
+  if (explicitScanToken) {
+    try { return await resolveScanSession(explicitScanToken); } catch {}
+  }
+  const cookieStore = await cookies();
+  const scanToken = cookieStore.get(SCAN_COOKIE)?.value;
+  if (!scanToken) throw new Error("QR_EXPIRED");
+  return resolveScanSession(scanToken);
 }
 
 export function getCheckinWindow(training: { date: Date; startTime: string }) {

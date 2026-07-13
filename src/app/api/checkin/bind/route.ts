@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!qrToken || !identifier?.trim() || !password) {
       return NextResponse.json({ success: false, message: "请输入姓名或工号和密码" }, { status: 400 });
     }
-    const training = await resolveCheckinAccess(qrToken);
+    const training = await resolveCheckinAccess(qrToken, request.headers.get("x-checkin-session"));
     assertCheckinOpen(training);
     const [employeeByNo, employeesByName] = await Promise.all([
       prisma.employee.findFirst({

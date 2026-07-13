@@ -15,15 +15,15 @@ export async function GET(request: NextRequest) {
     const training = await resolveDynamicQrToken(token);
     assertCheckinOpen(training);
     const window = getCheckinWindow(training);
+    const scanToken = await createScanSession(training.id, training.qrToken);
     const response = NextResponse.json({
       success: true,
       data: {
         id: training.id, title: training.title, type: training.type, date: training.date,
         startTime: training.startTime, endTime: training.endTime, location: training.location,
-        status: training.status, checkinClosesAt: window.closesAt,
+        status: training.status, checkinClosesAt: window.closesAt, scanSession: scanToken,
       },
     });
-    const scanToken = await createScanSession(training.id, training.qrToken);
     response.cookies.set(scanCookie.name, scanToken, {
       httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
       maxAge: scanCookie.maxAge, path: "/",
