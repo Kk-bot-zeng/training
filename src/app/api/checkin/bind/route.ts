@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Bind checkin device error:", error);
-    return NextResponse.json({ success: false, message: "二维码已失效，请重新扫描" }, { status: 400 });
+    const code = error instanceof Error ? error.message : "";
+    if (code === "QR_EXPIRED") {
+      return NextResponse.json({ success: false, message: "二维码已失效，请重新扫描" }, { status: 400 });
+    }
+    return NextResponse.json({ success: false, message: "设备绑定失败，请联系管理员" }, { status: 500 });
   }
 }
