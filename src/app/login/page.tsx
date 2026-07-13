@@ -29,20 +29,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
+    <div className="ocean-login" style={{
       minHeight: "100vh",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "linear-gradient(135deg, #0d1a32 0%, #132044 40%, #1a2744 100%)",
+      background: "radial-gradient(circle at 15% 15%, rgba(52,213,177,.13), transparent 28%), linear-gradient(135deg, #061624 0%, #0b2940 55%, #103b50 100%)",
       position: "relative",
       overflow: "hidden",
     }}>
       {/* 背景装饰 */}
-      <div style={{ position: "absolute", top: -120, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(99,132,255,0.08)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: -100, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(139,92,246,0.06)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: -120, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(52,213,177,0.06)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -100, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(35,107,137,0.16)", pointerEvents: "none" }} />
 
-      <div style={{
+      <div className="ocean-login-card" style={{
         background: "#fff",
         borderRadius: 20,
         padding: "48px 40px",
@@ -56,9 +56,9 @@ export default function LoginPage() {
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16,
-            background: "linear-gradient(135deg, #6384ff, #8b5cf6)",
+            background: "linear-gradient(135deg, #51e6c4, #22bd9b)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, fontWeight: 700, color: "#fff", margin: "0 auto 16px",
+            fontSize: 24, fontWeight: 800, color: "#073039", margin: "0 auto 16px",
           }}>
             T
           </div>
@@ -78,7 +78,7 @@ export default function LoginPage() {
             <Button type="primary" htmlType="submit" loading={loading}
               style={{
                 width: "100%", height: 48, borderRadius: 10, fontSize: 15, fontWeight: 600,
-                background: "linear-gradient(135deg, #6384ff, #764ba2)", border: "none",
+                background: "linear-gradient(135deg, #42debb, #25c9a5)", color: "#062e34", border: "none",
               }}>
               登 录
             </Button>
@@ -86,7 +86,7 @@ export default function LoginPage() {
         </Form>
 
         <p style={{ textAlign: "center", color: "#d1d5db", fontSize: 12, marginTop: 24 }}>
-          Powered by Training System
+          THUNDERBIRD LEARNING HUB
         </p>
       </div>
     </div>

@@ -46,19 +46,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     .find(m => pathname === m.key || pathname.startsWith(m.key + "/"))?.key || "/portal";
 
   return (
-    <ConfigProvider theme={{ components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "rgba(99,132,255,0.15)", darkItemSelectedColor: "#6384ff", darkItemColor: "rgba(255,255,255,0.65)", darkItemHoverBg: "rgba(255,255,255,0.04)" } } }}>
-      <Layout style={{ minHeight: "100vh" }}>
-        <Sider width={220} style={{ background: "linear-gradient(180deg, #0d1a32 0%, #132044 100%)" }}>
-          <div style={{ height: 72, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6384ff, #8b5cf6)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16 }}>T</div>
-            <span style={{ color: "#fff", fontWeight: 600, fontSize: 15 }}>学员中心</span>
+    <ConfigProvider theme={{ token: { colorPrimary: "#25c9a5", borderRadius: 12, colorText: "#153247", colorBgLayout: "#edf3f5" }, components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "rgba(52,213,177,0.14)", darkItemSelectedColor: "#42debb", darkItemColor: "#87a5b8", darkItemHoverBg: "rgba(255,255,255,0.05)" } } }}>
+      <Layout className="portal-shell" style={{ minHeight: "100vh" }}>
+        <Sider width={220} className="ocean-sider">
+          <div className="ocean-brand" style={{ padding: "0 22px" }}>
+            <div className="ocean-mark">T</div>
+            <div><span className="ocean-brand-name">雷鸟培训</span><small>STUDENT PORTAL</small></div>
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", padding: "8px" }} />
         </Sider>
-        <Layout style={{ background: "#f0f2f5" }}>
-          <div style={{ height: 56, background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+        <Layout className="ocean-workspace">
+          <div className="ocean-topbar">
             <div />
             <Dropdown menu={{ items: [{ key: "logout", icon: <LogoutOutlined />, label: "退出", danger: true }], onClick: () => { document.cookie = "token=; path=/; max-age=0"; router.push("/login"); } }} placement="bottomRight">
               <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -67,7 +67,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </div>
             </Dropdown>
           </div>
-          <Content style={{ padding: 24, overflow: "auto", height: "calc(100vh - 56px)" }}>{children}</Content>
+          <Content className="ocean-content">{children}</Content>
         </Layout>
       </Layout>
     </ConfigProvider>

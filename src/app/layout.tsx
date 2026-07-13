@@ -3,7 +3,7 @@ import { AntdRegistry } from "@ant-design/nextjs-registry";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "培训考勤统计系统",
+  title: "雷鸟培训系统",
   description: "部门培训考勤管理与统计分析系统",
 };
 

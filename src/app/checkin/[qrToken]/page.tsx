@@ -109,17 +109,17 @@ export default function CheckinPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-blue-600 flex items-center justify-center text-white">加载中...</div>;
+  if (loading) return <div className="min-h-screen bg-[#071b2e] flex items-center justify-center text-[#42debb]">安全签到加载中...</div>;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-500 to-blue-700 px-4 py-8">
+    <main className="checkin-ocean min-h-screen px-4 py-8">
       <div className="mx-auto max-w-md">
-        <section className="rounded-3xl bg-white p-6 shadow-xl">
+        <section className="checkin-panel rounded-3xl p-6">
           {training && (
             <>
               <h1 className="text-2xl font-bold text-gray-900">{training.title}</h1>
               <div className="mt-3 flex flex-wrap gap-2 text-sm text-gray-500">
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-600">{training.type === "exam" ? "考试" : "培训"}</span>
+                <span className="rounded-full bg-[#ddf8f1] px-3 py-1 text-[#138d74]">{training.type === "exam" ? "考试" : "培训"}</span>
                 <span>📅 {dayjs(training.date).format("MM月DD日")}</span>
                 <span>🕐 {training.startTime}-{training.endTime}</span>
                 {training.location && <span>📍 {training.location}</span>}
@@ -138,11 +138,11 @@ export default function CheckinPage() {
               </div>
               <input value={identifier} onChange={(event) => setIdentifier(event.target.value)}
                 placeholder="姓名或工号" autoComplete="username" required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500" />
+                className="w-full rounded-xl border border-[#dce7eb] bg-[#f7fafb] px-4 py-3 outline-none focus:border-[#25c9a5]" />
               <input value={password} onChange={(event) => setPassword(event.target.value)}
                 placeholder="登录密码" type="password" autoComplete="current-password" required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500" />
-              <button disabled={submitting} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white disabled:opacity-50">
+                className="w-full rounded-xl border border-[#dce7eb] bg-[#f7fafb] px-4 py-3 outline-none focus:border-[#25c9a5]" />
+              <button disabled={submitting} className="w-full rounded-xl bg-[#25c9a5] py-3 font-bold text-[#062e34] shadow-lg shadow-emerald-900/10 disabled:opacity-50">
                 {submitting ? "验证中..." : "验证并绑定手机"}
               </button>
               <p className="text-center text-xs text-gray-400">存在同名学员时请使用工号；重新绑定会让旧手机失效</p>
@@ -152,7 +152,7 @@ export default function CheckinPage() {
           {employee && !needsBinding && (
             <section className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-5">
               <div className="flex items-center gap-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold text-white ${employee.checkedIn ? "bg-green-500" : "bg-blue-500"}`}>
+                <div className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold ${employee.checkedIn ? "bg-[#25c9a5] text-[#062e34]" : "bg-[#153f58] text-[#42debb]"}`}>
                   {employee.name.charAt(0)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -167,14 +167,14 @@ export default function CheckinPage() {
                 </div>
               ) : (
                 <button onClick={submitCheckin} disabled={submitting}
-                  className="mt-5 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white disabled:opacity-50">
+                  className="mt-5 w-full rounded-xl bg-[#25c9a5] py-3 font-bold text-[#062e34] shadow-lg shadow-emerald-900/10 disabled:opacity-50">
                   {submitting ? "签到中..." : "确认本人签到"}
                 </button>
               )}
             </section>
           )}
         </section>
-        <p className="mt-4 text-center text-xs text-blue-100">动态二维码 · 单设备绑定 · 签到记录可追溯</p>
+        <p className="mt-4 text-center text-xs text-[#88aabd]">动态二维码 · 单设备绑定 · 签到记录可追溯</p>
       </div>
     </main>
   );

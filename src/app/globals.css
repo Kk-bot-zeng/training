@@ -1,30 +1,175 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ocean-950: #061624;
+  --ocean-900: #081b2e;
+  --ocean-800: #0d3047;
+  --ocean-700: #153f58;
+  --ocean-100: #dce9ee;
+  --ocean-50: #edf3f5;
+  --mint-500: #25c9a5;
+  --mint-400: #42debb;
+  --ink: #102a3c;
+  --muted: #788c99;
+  --line: #dfe8ec;
+  --surface: #ffffff;
+  --shadow: 0 12px 32px rgba(12, 43, 61, 0.07);
 }
 
+* { box-sizing: border-box; }
+html, body { margin: 0; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--ocean-50);
+  color: var(--ink);
+  font-family: "Aptos", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Ant Design overrides */
-.ant-layout {
-  min-height: 100vh;
+.ant-layout { min-height: 100vh; }
+.ocean-sider.ant-layout-sider {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(52, 213, 177, .08), transparent 28%),
+    linear-gradient(180deg, var(--ocean-950), var(--ocean-900) 56%, #0a2335) !important;
+  box-shadow: 12px 0 40px rgba(2, 17, 28, .12);
+}
+.ocean-brand {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.ocean-mark {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  color: #073039; font-size: 17px; font-weight: 900;
+  background: linear-gradient(145deg, #51e6c4, #22bd9b);
+  box-shadow: 0 8px 24px rgba(37, 201, 165, .24);
+}
+.ocean-brand-name { display: block; color: #f6fbfd; font-size: 16px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.ocean-brand small { display: block; margin-top: 3px; color: #52748b; font-size: 8px; letter-spacing: .16em; }
+.ocean-sider .ant-menu { padding: 12px 10px !important; }
+.ocean-sider .ant-menu-item { height: 42px; line-height: 42px; margin-block: 3px; border-radius: 11px; }
+.ocean-sider .ant-menu-item-selected { box-shadow: inset 3px 0 var(--mint-400); }
+.ocean-sider .ant-menu-item-group-title { padding-top: 15px; font-size: 10px; letter-spacing: .14em; }
+
+.ocean-workspace { background: var(--ocean-50) !important; }
+.ocean-topbar {
+  height: 64px; flex: 0 0 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255,255,255,.88);
+  border-bottom: 1px solid rgba(208, 221, 227, .8);
+  backdrop-filter: blur(16px);
+}
+.ocean-content {
+  height: calc(100vh - 64px);
+  padding: 28px !important;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(37,201,165,.05), transparent 26%),
+    var(--ocean-50);
+}
+.ocean-content h1 { color: var(--ink) !important; letter-spacing: -.025em; }
+.ocean-content > div { animation: ocean-enter .42s ease both; }
+
+.admin-shell .ant-card,
+.portal-shell .ant-card,
+.admin-shell .ant-table-wrapper,
+.portal-shell .ant-table-wrapper {
+  border-color: transparent;
+}
+.admin-shell .ant-card,
+.portal-shell .ant-card {
+  border-radius: 17px !important;
+  box-shadow: var(--shadow);
+}
+.admin-shell .ant-table-container,
+.portal-shell .ant-table-container {
+  border-radius: 17px !important;
+  overflow: hidden;
+}
+.admin-shell .ant-table-thead > tr > th,
+.portal-shell .ant-table-thead > tr > th {
+  background: #f7fafb !important;
+  color: #536b79 !important;
+  border-bottom-color: var(--line) !important;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+.admin-shell .ant-table-tbody > tr > td,
+.portal-shell .ant-table-tbody > tr > td { border-bottom-color: #edf2f4 !important; }
+.admin-shell .ant-table-tbody > tr:hover > td,
+.portal-shell .ant-table-tbody > tr:hover > td { background: #f2fbf8 !important; }
+.admin-shell .ant-btn-primary,
+.portal-shell .ant-btn-primary {
+  color: #062e34 !important;
+  font-weight: 700;
+  border: 0;
+  background: linear-gradient(135deg, var(--mint-400), var(--mint-500)) !important;
+  box-shadow: 0 8px 18px rgba(37,201,165,.18);
+}
+.admin-shell .ant-btn-primary.ant-btn-dangerous,
+.portal-shell .ant-btn-primary.ant-btn-dangerous { color: #fff !important; background: #ef5b68 !important; }
+.admin-shell .ant-input, .admin-shell .ant-select-selector, .admin-shell .ant-picker, .admin-shell .ant-input-number,
+.portal-shell .ant-input, .portal-shell .ant-select-selector, .portal-shell .ant-picker, .portal-shell .ant-input-number {
+  border-color: #dce6ea !important;
+  box-shadow: none !important;
+}
+.admin-shell .ant-input:focus, .admin-shell .ant-select-focused .ant-select-selector,
+.portal-shell .ant-input:focus, .portal-shell .ant-select-focused .ant-select-selector { border-color: var(--mint-500) !important; }
+.admin-shell .ant-statistic-title, .portal-shell .ant-statistic-title { color: #81939e; font-size: 12px; }
+.admin-shell .ant-statistic-content, .portal-shell .ant-statistic-content { color: var(--ink); font-weight: 700; letter-spacing: -.03em; }
+.admin-shell .ant-tag, .portal-shell .ant-tag { border-radius: 7px; border: 0; font-weight: 600; }
+.ant-drawer-content, .ant-modal-content { border-radius: 18px 0 0 18px; }
+
+.ocean-login::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: .16;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black, transparent 70%);
+}
+.ocean-login-card {
+  border: 1px solid rgba(255,255,255,.68);
+  box-shadow: 0 30px 80px rgba(1,15,25,.36) !important;
+}
+.ocean-login-card .ant-input-affix-wrapper {
+  border-color: #dae5e9;
+  background: #f7fafb;
+  box-shadow: none;
+}
+.ocean-login-card .ant-input-affix-wrapper-focused { border-color: var(--mint-500); }
+
+.checkin-ocean {
+  background:
+    radial-gradient(circle at 80% 0%, rgba(52,213,177,.13), transparent 28%),
+    linear-gradient(180deg, #0b2c44, #071b2e 70%, #061624);
+}
+.checkin-panel {
+  background: rgba(248, 252, 253, .98);
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 24px 70px rgba(1,15,25,.32);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-thumb {
-  background: #d9d9d9;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #bfbfbf;
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: #b9cbd3; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #91aab5; }
+
+@keyframes ocean-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 760px) {
+  .ocean-content { padding: 18px !important; }
+  .ocean-topbar { padding: 0 16px; }
+  .portal-shell .ocean-sider { max-width: 76px !important; min-width: 76px !important; width: 76px !important; flex: 0 0 76px !important; }
+  .portal-shell .ocean-brand { justify-content: center; padding: 0 !important; }
+  .portal-shell .ocean-brand > div:last-child { display: none; }
+  .portal-shell .ant-menu-title-content { display: none; }
+  .portal-shell .ant-menu-item { padding-inline: 20px !important; }
+  .ocean-login-card { padding: 36px 24px !important; }
 }

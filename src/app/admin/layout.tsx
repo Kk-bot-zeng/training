@@ -102,25 +102,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <ConfigProvider theme={{ components: { Menu: {
-      darkItemBg: "transparent", darkItemSelectedBg: "rgba(99,132,255,0.15)",
-      darkItemSelectedColor: "#6384ff", darkItemColor: "rgba(255,255,255,0.65)",
-      darkItemHoverBg: "rgba(255,255,255,0.04)", darkGroupTitleColor: "rgba(255,255,255,0.35)",
+    <ConfigProvider theme={{ token: {
+      colorPrimary: "#25c9a5", borderRadius: 12, colorText: "#153247",
+      colorBgLayout: "#edf3f5", colorBorderSecondary: "#e1e9ed",
+    }, components: { Menu: {
+      darkItemBg: "transparent", darkItemSelectedBg: "rgba(52,213,177,0.14)",
+      darkItemSelectedColor: "#42debb", darkItemColor: "#87a5b8",
+      darkItemHoverBg: "rgba(255,255,255,0.05)", darkGroupTitleColor: "#52748b",
     }}}}>
-      <Layout style={{ minHeight: "100vh", overflow: "hidden" }}>
+      <Layout className="admin-shell" style={{ minHeight: "100vh", overflow: "hidden" }}>
         <Sider trigger={null} collapsible collapsed={collapsed} width={240}
-          style={{ background: "linear-gradient(180deg, #0d1a32 0%, #132044 100%)", borderRight: "none" }}>
-          <div style={{ height: 72, display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6384ff, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "#fff", flexShrink: 0 }}>T</div>
-            {!collapsed && <span style={{ color: "#fff", fontSize: 16, fontWeight: 600, whiteSpace: "nowrap" }}>培训考勤</span>}
+          className="ocean-sider" style={{ borderRight: "none" }}>
+          <div className="ocean-brand" style={{ justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 24px" }}>
+            <div className="ocean-mark">T</div>
+            {!collapsed && <div><span className="ocean-brand-name">雷鸟培训</span><small>LEARNING HUB</small></div>}
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", borderRight: "none", padding: "8px", fontSize: 14 }} />
         </Sider>
 
-        <Layout style={{ background: "#f0f2f5" }}>
-          <div style={{ height: 56, background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)", position: "sticky", top: 0, zIndex: 10 }}>
+        <Layout className="ocean-workspace">
+          <div className="ocean-topbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed(!collapsed)} style={{ fontSize: 16, color: "#4b5563" }} />
@@ -136,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
             </Dropdown>
           </div>
-          <Content style={{ padding: 24, overflow: "auto", height: "calc(100vh - 56px)" }}>
+          <Content className="ocean-content">
             {children}
           </Content>
         </Layout>
