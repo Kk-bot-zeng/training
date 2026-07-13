@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
     const buffer = await file.arrayBuffer();
     const rows = parseEmployeeExcel(buffer);
 
+    // Older production databases created this column as NOT NULL.
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Employee" ALTER COLUMN "employeeNo" DROP NOT NULL'
+    );
+
     let created = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -64,8 +69,10 @@ export async function POST(request: NextRequest) {
           },
         });
         created++;
-      } catch {
-        errors.push(`第${lineNum}行: 创建失败`);
+      } catch (error) {
+        console.error(`Import employee row ${lineNum} error:`, error);
+        const reason = error instanceof Error ? error.message : "未知错误";
+        errors.push(`第${lineNum}行: 创建失败（${reason.slice(0, 160)}）`);
         skipped++;
       }
     }

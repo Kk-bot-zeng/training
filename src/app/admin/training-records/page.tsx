@@ -76,6 +76,8 @@ export default function TrainingRecordsPage() {
     setMaterialUploading(true);
     setMaterialUploadProgress(0);
     try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const uploadPath = `training-materials/${Date.now()}-${safeName}`;
       const statusResponse = await fetch("/api/uploads/materials");
       const status = await statusResponse.json();
       if (!statusResponse.ok || !status.configured) {
@@ -87,7 +89,7 @@ export default function TrainingRecordsPage() {
         body: JSON.stringify({
           type: "blob.generate-presigned-url",
           payload: {
-            pathname: `training-materials/${file.name}`,
+            pathname: uploadPath,
             clientPayload: null,
             multipart: true,
           },
@@ -97,7 +99,7 @@ export default function TrainingRecordsPage() {
         const presignError = await presignResponse.json().catch(() => null);
         throw new Error(presignError?.error || "Vercel Blob 无法生成上传地址");
       }
-      const blob = await uploadPresigned(`training-materials/${file.name}`, file, {
+      const blob = await uploadPresigned(uploadPath, file, {
         access: "public",
         handleUploadUrl: "/api/uploads/materials",
         multipart: true,
