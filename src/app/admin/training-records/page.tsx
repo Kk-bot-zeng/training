@@ -76,6 +76,11 @@ export default function TrainingRecordsPage() {
     setMaterialUploading(true);
     setMaterialUploadProgress(0);
     try {
+      const statusResponse = await fetch("/api/uploads/materials");
+      const status = await statusResponse.json();
+      if (!statusResponse.ok || !status.configured) {
+        throw new Error(status.message || "Vercel Blob 读写令牌尚未配置到生产环境");
+      }
       const blob = await upload(`training-materials/${file.name}`, file, {
         access: "public",
         handleUploadUrl: "/api/uploads/materials",

@@ -8,10 +8,36 @@ const ALLOWED_CONTENT_TYPES = [
   "application/pdf",
 ];
 
+function getBlobToken() {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+
+  const prefixedToken = Object.entries(process.env).find(
+    ([key, value]) => key.endsWith("BLOB_READ_WRITE_TOKEN") && Boolean(value),
+  );
+  return prefixedToken?.[1];
+}
+
+export async function GET() {
+  try {
+    await getAuthAdmin();
+    return NextResponse.json({ success: true, configured: Boolean(getBlobToken()) });
+  } catch {
+    return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    const token = getBlobToken();
+    if (!token) {
+      return NextResponse.json(
+        { error: "Vercel Blob 读写令牌尚未配置到当前生产环境" },
+        { status: 503 },
+      );
+    }
     const body = (await request.json()) as HandleUploadBody;
     const response = await handleUpload({
+      token,
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
