@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Spin, Typography, message, Space, Tag } from "antd";
-import { ArrowLeftOutlined, ReloadOutlined, PrinterOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, ReloadOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import dayjs from "dayjs";
 
@@ -22,6 +22,17 @@ export default function QRCodePage() {
 
   const [training, setTraining] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkinUrl, setCheckinUrl] = useState("");
+  const [refreshIn, setRefreshIn] = useState(60);
+
+  const refreshDynamicQr = async () => {
+    const res = await fetch(`/api/trainings/${id}/qr`);
+    const data = await res.json();
+    if (data.success) {
+      setCheckinUrl(data.data.checkinUrl);
+      setRefreshIn(60);
+    }
+  };
 
   const fetchTraining = async () => {
     setLoading(true);
@@ -36,6 +47,10 @@ export default function QRCodePage() {
 
   useEffect(() => {
     fetchTraining();
+    refreshDynamicQr();
+    const qrTimer = setInterval(refreshDynamicQr, 60_000);
+    const countdown = setInterval(() => setRefreshIn((value) => Math.max(0, value - 1)), 1000);
+    return () => { clearInterval(qrTimer); clearInterval(countdown); };
   }, [id]);
 
   const handleRegenerate = async () => {
@@ -45,16 +60,13 @@ export default function QRCodePage() {
       if (data.success) {
         message.success("二维码已重新生成");
         fetchTraining();
+        refreshDynamicQr();
       } else {
         message.error(data.message);
       }
     } catch {
       message.error("操作失败");
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   if (loading) {
@@ -66,8 +78,6 @@ export default function QRCodePage() {
   }
 
   if (!training) return null;
-
-  const checkinUrl = training.checkinUrl as string;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -111,6 +121,9 @@ export default function QRCodePage() {
         <Text className="block mb-1 text-lg font-medium">
           请使用手机扫描二维码签到
         </Text>
+        <Text type="secondary" className="block mb-1">
+          动态二维码将在 {refreshIn} 秒后自动更新，截图或转发后会失效
+        </Text>
         <Text type="secondary" className="block mb-4 break-all">
           {checkinUrl}
         </Text>
@@ -118,9 +131,6 @@ export default function QRCodePage() {
         <Space className="no-print">
           <Button icon={<ReloadOutlined />} onClick={handleRegenerate}>
             重新生成
-          </Button>
-          <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-            打印二维码
           </Button>
         </Space>
       </Card>

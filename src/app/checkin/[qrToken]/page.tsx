@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import dayjs from "dayjs";
 
-// WeChat / QQ内置浏览器检测
-function isWeChatBrowser(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent.toLowerCase();
-  return ua.includes("micromessenger") || ua.includes("qq/");
-}
+type Training = {
+  title: string;
+  type: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+};
 
-interface CheckinEmployee {
+type Employee = {
   id: number;
   name: string;
   employeeNo: string;
@@ -19,304 +21,158 @@ interface CheckinEmployee {
   checkedIn: boolean;
   status: string | null;
   checkInTime: string | null;
-}
-
-interface TrainingInfo {
-  id: number;
-  title: string;
-  type: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  location: string | null;
-  status: string;
-}
-
-const statusLabelMap: Record<string, string> = {
-  present: "出席",
-  late: "迟到",
-  leave: "请假",
-  absent: "缺勤",
 };
 
 export default function CheckinPage() {
   const params = useParams();
   const qrToken = params.qrToken as string;
-
-  const [training, setTraining] = useState<TrainingInfo | null>(null);
-  const [employees, setEmployees] = useState<CheckinEmployee[]>([]);
-  const [search, setSearch] = useState("");
+  const [training, setTraining] = useState<Training | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [needsBinding, setNeedsBinding] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [checkingIn, setCheckingIn] = useState<number | null>(null);
-  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [wechatDetected, setWechatDetected] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [notice, setNotice] = useState("");
 
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const fetchData = useCallback(async () => {
-    if (!qrToken) return;
-    setLoading(true);
-    setError("");
-
-    try {
-      const [infoRes, empRes] = await Promise.all([
-        fetch(`/api/checkin/info?qrToken=${qrToken}`),
-        fetch(`/api/checkin/employees?qrToken=${qrToken}`),
-      ]);
-
-      const info = await infoRes.json();
-      const emp = await empRes.json();
-
-      if (!info.success) {
-        setError(info.message || "培训不存在");
-        return;
-      }
-
-      setTraining(info.data);
-
-      if (emp.success) {
-        setEmployees(emp.data);
-      }
-    } catch {
-      setError("网络错误，请重试");
-    } finally {
-      setLoading(false);
+  const loadEmployee = async () => {
+    const response = await fetch(`/api/checkin/me?qrToken=${encodeURIComponent(qrToken)}`);
+    const data = await response.json();
+    if (data.success) {
+      setEmployee(data.data);
+      setNeedsBinding(false);
+    } else if (data.code === "DEVICE_BIND_REQUIRED") {
+      setNeedsBinding(true);
+    } else {
+      setError(data.message || "无法识别签到身份");
     }
-  }, [qrToken]);
+  };
 
   useEffect(() => {
-    if (isWeChatBrowser()) {
-      setWechatDetected(true);
-      setLoading(false);
-    } else {
-      fetchData();
-    }
-  }, [fetchData]);
+    const load = async () => {
+      try {
+        const response = await fetch(`/api/checkin/info?qrToken=${encodeURIComponent(qrToken)}`);
+        const data = await response.json();
+        if (!data.success) return setError(data.message || "签到二维码无效");
+        setTraining(data.data);
+        await loadEmployee();
+      } catch {
+        setError("网络错误，请重新扫码");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [qrToken]);
 
-  const handleCheckin = async (employeeId: number) => {
-    setCheckingIn(employeeId);
+  const bindDevice = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
     try {
-      const res = await fetch("/api/checkin/submit", {
+      const response = await fetch("/api/checkin/bind", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrToken, employeeId }),
+        body: JSON.stringify({ qrToken, identifier, password }),
       });
-      const data = await res.json();
-
-      if (data.success) {
-        showToast("success", data.message || "签到成功");
-        // Update local state
-        setEmployees((prev) =>
-          prev.map((e) =>
-            e.id === employeeId
-              ? {
-                  ...e,
-                  checkedIn: true,
-                  status: data.data.status,
-                  checkInTime: data.data.checkInTime,
-                }
-              : e
-          )
-        );
-      } else {
-        showToast("error", data.message || "签到失败");
-      }
-    } catch {
-      showToast("error", "网络错误");
+      const data = await response.json();
+      if (!data.success) return setError(data.message || "绑定失败");
+      setEmployee({ ...data.data, checkedIn: false, status: null, checkInTime: null });
+      setNeedsBinding(false);
+      setPassword("");
+      setNotice("当前手机已绑定，90天内扫码无需再次登录");
+      await loadEmployee();
     } finally {
-      setCheckingIn(null);
+      setSubmitting(false);
     }
   };
 
-  const filteredEmployees = search
-    ? employees.filter(
-        (e) =>
-          e.name.includes(search) || e.employeeNo.includes(search)
-      )
-    : employees;
+  const submitCheckin = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/checkin/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrToken }),
+      });
+      const data = await response.json();
+      if (!data.success) return setError(data.message || "签到失败");
+      setEmployee((current) => current ? { ...current, checkedIn: true, status: data.data.status, checkInTime: data.data.checkInTime } : current);
+      setNotice(data.message || "签到成功");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  const checkedInCount = employees.filter((e) => e.checkedIn).length;
-
-  // WeChat / QQ browser prompt
-  if (wechatDetected) {
-    const fullUrl = typeof window !== "undefined" ? window.location.href : "";
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-500 to-blue-600 flex flex-col items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">请用系统浏览器打开</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            微信/QQ内置浏览器无法打开签到页面，请点击右上角菜单，选择<strong>「在浏览器中打开」</strong>
-          </p>
-          <div className="bg-gray-50 rounded-lg p-3 mb-4 break-all text-xs text-gray-600 text-left">
-            {fullUrl}
-          </div>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(fullUrl).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              });
-            }}
-            className="w-full py-3 bg-blue-500 text-white rounded-full font-medium text-sm hover:bg-blue-600 active:scale-95 transition-all mb-2"
-          >
-            {copied ? "✅ 已复制链接" : "📋 复制签到链接"}
-          </button>
-          <p className="text-xs text-gray-400">复制链接后，用手机自带浏览器（Safari/Chrome）打开</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-500">加载中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-sm">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-bold text-gray-700 mb-2">无法签到</h2>
-          <p className="text-gray-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!training) return null;
+  if (loading) return <div className="min-h-screen bg-blue-600 flex items-center justify-center text-white">加载中...</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-500 to-blue-600">
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg text-white text-sm font-medium animate-bounce ${
-            toast.type === "success" ? "bg-green-500" : "bg-red-500"
-          }`}
-        >
-          {toast.type === "success" ? "✅ " : "❌ "}
-          {toast.message}
-        </div>
-      )}
-
-      {/* Training Info Header */}
-      <div className="bg-white rounded-b-3xl shadow-lg px-5 pt-8 pb-6">
-        <h1 className="text-xl font-bold text-gray-800">{training.title}</h1>
-        <div className="flex flex-wrap gap-2 mt-2 text-sm text-gray-500">
-          <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-medium">
-            {training.type === "exam" ? "考试" : "培训"}
-          </span>
-          <span>
-            📅 {dayjs(training.date).format("MM月DD日")}
-          </span>
-          <span>
-            🕐 {training.startTime}-{training.endTime}
-          </span>
-          {training.location && <span>📍 {training.location}</span>}
-        </div>
-
-        {/* Check-in progress */}
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{
-                width: `${employees.length > 0 ? (checkedInCount / employees.length) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <span className="text-sm font-bold text-gray-600 whitespace-nowrap">
-            {checkedInCount}/{employees.length}
-          </span>
-        </div>
-      </div>
-
-      {/* Search bar */}
-      <div className="px-4 mt-4">
-        <input
-          type="text"
-          placeholder="🔍 搜索姓名或工号..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-3 rounded-full border-0 shadow-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        />
-      </div>
-
-      {/* Employee list */}
-      <div className="px-4 mt-3 pb-8">
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          {filteredEmployees.length === 0 ? (
-            <div className="py-12 text-center text-gray-400">
-              {search ? "未找到匹配的员工" : "暂无可签到的员工"}
-            </div>
-          ) : (
-            filteredEmployees.map((emp, idx) => (
-              <div
-                key={emp.id}
-                className={`flex items-center gap-3 px-4 py-3 ${
-                  idx !== filteredEmployees.length - 1 ? "border-b border-gray-50" : ""
-                } ${emp.checkedIn ? "bg-green-50" : ""}`}
-              >
-                {/* Avatar */}
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 ${
-                    emp.checkedIn ? "bg-green-500" : "bg-blue-500"
-                  }`}
-                >
-                  {emp.name.charAt(0)}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 text-sm truncate">
-                    {emp.name}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {emp.employeeNo} · {emp.departmentName}
-                  </p>
-                </div>
-
-                {/* Status / Button */}
-                {emp.checkedIn ? (
-                  <div className="text-right shrink-0">
-                    <span className="text-green-600 text-sm font-medium">
-                      ✅ {statusLabelMap[emp.status || "present"] || emp.status}
-                    </span>
-                    {emp.checkInTime && (
-                      <p className="text-xs text-gray-400">
-                        {dayjs(emp.checkInTime).format("HH:mm")}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleCheckin(emp.id)}
-                    disabled={checkingIn === emp.id}
-                    className="shrink-0 px-5 py-2 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {checkingIn === emp.id ? "签到中..." : "签到"}
-                  </button>
-                )}
+    <main className="min-h-screen bg-gradient-to-b from-blue-500 to-blue-700 px-4 py-8">
+      <div className="mx-auto max-w-md">
+        <section className="rounded-3xl bg-white p-6 shadow-xl">
+          {training && (
+            <>
+              <h1 className="text-2xl font-bold text-gray-900">{training.title}</h1>
+              <div className="mt-3 flex flex-wrap gap-2 text-sm text-gray-500">
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-600">{training.type === "exam" ? "考试" : "培训"}</span>
+                <span>📅 {dayjs(training.date).format("MM月DD日")}</span>
+                <span>🕐 {training.startTime}-{training.endTime}</span>
+                {training.location && <span>📍 {training.location}</span>}
               </div>
-            ))
+            </>
           )}
-        </div>
+
+          {error && <div className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+          {notice && <div className="mt-5 rounded-xl bg-green-50 p-3 text-sm text-green-700">✅ {notice}</div>}
+
+          {needsBinding && (
+            <form onSubmit={bindDevice} className="mt-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">首次使用，请绑定当前手机</h2>
+                <p className="mt-1 text-sm text-gray-500">只需验证一次，之后90天扫码即可签到</p>
+              </div>
+              <input value={identifier} onChange={(event) => setIdentifier(event.target.value)}
+                placeholder="姓名或工号" autoComplete="username" required
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500" />
+              <input value={password} onChange={(event) => setPassword(event.target.value)}
+                placeholder="登录密码" type="password" autoComplete="current-password" required
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500" />
+              <button disabled={submitting} className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white disabled:opacity-50">
+                {submitting ? "验证中..." : "验证并绑定手机"}
+              </button>
+              <p className="text-center text-xs text-gray-400">存在同名学员时请使用工号；重新绑定会让旧手机失效</p>
+            </form>
+          )}
+
+          {employee && !needsBinding && (
+            <section className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-5">
+              <div className="flex items-center gap-4">
+                <div className={`flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold text-white ${employee.checkedIn ? "bg-green-500" : "bg-blue-500"}`}>
+                  {employee.name.charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-lg font-semibold text-gray-900">{employee.name}</div>
+                  <div className="text-sm text-gray-500">{employee.employeeNo} · {employee.departmentName}</div>
+                </div>
+              </div>
+              {employee.checkedIn ? (
+                <div className="mt-5 rounded-xl bg-green-100 p-4 text-center font-semibold text-green-700">
+                  ✅ 已签到 · {employee.status === "late" ? "迟到" : "出席"}
+                  {employee.checkInTime && <div className="mt-1 text-sm font-normal">{dayjs(employee.checkInTime).format("HH:mm:ss")}</div>}
+                </div>
+              ) : (
+                <button onClick={submitCheckin} disabled={submitting}
+                  className="mt-5 w-full rounded-xl bg-blue-600 py-3 font-semibold text-white disabled:opacity-50">
+                  {submitting ? "签到中..." : "确认本人签到"}
+                </button>
+              )}
+            </section>
+          )}
+        </section>
+        <p className="mt-4 text-center text-xs text-blue-100">动态二维码 · 单设备绑定 · 签到记录可追溯</p>
       </div>
-    </div>
+    </main>
   );
 }

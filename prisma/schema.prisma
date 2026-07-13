@@ -14,17 +14,43 @@ model Department {
 }
 
 model Employee {
-  id           Int          @id @default(autoincrement())
-  name         String
-  employeeNo   String       @unique
-  departmentId Int
-  department   Department   @relation(fields: [departmentId], references: [id])
-  status       String       @default("active")
-  phone        String?
-  passwordHash String?                              // 学员登录密码（bcrypt哈希）
-  createdAt    DateTime     @default(now())
-  attendance   Attendance[]
-  examAttempts ExamAttempt[]
+  id            Int            @id @default(autoincrement())
+  name          String
+  employeeNo    String         @unique
+  departmentId  Int
+  department    Department     @relation(fields: [departmentId], references: [id])
+  status        String         @default("active")
+  phone         String?
+  passwordHash  String? // 学员登录密码（bcrypt哈希）
+  createdAt     DateTime       @default(now())
+  attendance    Attendance[]
+  examAttempts  ExamAttempt[]
+  deviceBinding DeviceBinding?
+}
+
+model DeviceBinding {
+  id         Int      @id @default(autoincrement())
+  employeeId Int      @unique
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deviceId   String   @unique
+  userAgent  String?
+  lastIp     String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CheckinAudit {
+  id         Int      @id @default(autoincrement())
+  trainingId Int
+  employeeId Int
+  deviceId   String
+  ip         String?
+  userAgent  String?
+  result     String
+  createdAt  DateTime @default(now())
+
+  @@index([trainingId, employeeId])
 }
 
 model Admin {
@@ -66,55 +92,55 @@ model Attendance {
 
 model TrainingRecord {
   id               Int      @id @default(autoincrement())
-  topic            String                            // 培训主题
-  target           String                            // 培训对象（部门/人员）
-  date             DateTime                          // 培训时间
-  initiator        String                            // 需求发起人
-  format           String   @default("offline")      // 培训形式: online/offline/hybrid
-  participantCount Int      @default(0)              // 参训人数
-  instructor       String?                           // 讲师
-  description      String?                           // 需求描述
-  status           String   @default("completed")    // 需求状态: pending/ongoing/completed
-  materials        String?                           // 课件 JSON: [{name, url, type}]
-  recording        String?                           // 培训录屏URL
+  topic            String // 培训主题
+  target           String // 培训对象（部门/人员）
+  date             DateTime // 培训时间
+  initiator        String // 需求发起人
+  format           String   @default("offline") // 培训形式: online/offline/hybrid
+  participantCount Int      @default(0) // 参训人数
+  instructor       String? // 讲师
+  description      String? // 需求描述
+  status           String   @default("completed") // 需求状态: pending/ongoing/completed
+  materials        String? // 课件 JSON: [{name, url, type}]
+  recording        String? // 培训录屏URL
   createdAt        DateTime @default(now())
 }
 
 // ========== 考试系统 ==========
 
 model ExamQuestion {
-  id       Int              @id @default(autoincrement())
-  type     String                                    // single/multi/judge/essay
-  category String            @default("通用")          // 分类标签
-  difficulty String          @default("medium")       // easy/medium/hard
-  content  String                                    // 题目内容
-  options  String?                                   // 选项JSON: ["A.xx","B.xx","C.xx","D.xx"]
-  answer   String                                    // 正确答案（多选用逗号分隔）
-  score    Int              @default(2)               // 默认分值
-  analysis String?                                   // 答案解析
-  createdAt DateTime         @default(now())
+  id             Int                 @id @default(autoincrement())
+  type           String // single/multi/judge/essay
+  category       String              @default("通用") // 分类标签
+  difficulty     String              @default("medium") // easy/medium/hard
+  content        String // 题目内容
+  options        String? // 选项JSON: ["A.xx","B.xx","C.xx","D.xx"]
+  answer         String // 正确答案（多选用逗号分隔）
+  score          Int                 @default(2) // 默认分值
+  analysis       String? // 答案解析
+  createdAt      DateTime            @default(now())
   paperQuestions ExamPaperQuestion[]
 }
 
 model ExamPaper {
-  id              Int      @id @default(autoincrement())
-  title           String
-  description     String?
-  type            String   @default("timed")          // timed(定时考试) / practice(模拟练习)
-  duration        Int      @default(60)               // 考试时长（分钟）
-  passScore       Int      @default(60)               // 及格分数
-  totalScore      Int      @default(100)              // 总分
-  startTime       DateTime?                           // 定时考试开始时间
-  endTime         DateTime?                           // 定时考试结束时间
-  shuffleQuestions Boolean  @default(true)            // 题目随机排序
-  shuffleOptions  Boolean  @default(true)             // 选项随机排列
-  maxSwitch       Int      @default(3)                // 切屏次数上限
-  allowRetake     Boolean  @default(false)            // 允许补考
-  retakeCount     Int      @default(1)                // 补考次数
-  status          String   @default("draft")          // draft/published/closed
-  createdAt       DateTime @default(now())
-  paperQuestions  ExamPaperQuestion[]
-  attempts        ExamAttempt[]
+  id               Int                 @id @default(autoincrement())
+  title            String
+  description      String?
+  type             String              @default("timed") // timed(定时考试) / practice(模拟练习)
+  duration         Int                 @default(60) // 考试时长（分钟）
+  passScore        Int                 @default(60) // 及格分数
+  totalScore       Int                 @default(100) // 总分
+  startTime        DateTime? // 定时考试开始时间
+  endTime          DateTime? // 定时考试结束时间
+  shuffleQuestions Boolean             @default(true) // 题目随机排序
+  shuffleOptions   Boolean             @default(true) // 选项随机排列
+  maxSwitch        Int                 @default(3) // 切屏次数上限
+  allowRetake      Boolean             @default(false) // 允许补考
+  retakeCount      Int                 @default(1) // 补考次数
+  status           String              @default("draft") // draft/published/closed
+  createdAt        DateTime            @default(now())
+  paperQuestions   ExamPaperQuestion[]
+  attempts         ExamAttempt[]
 }
 
 model ExamPaperQuestion {
@@ -124,25 +150,25 @@ model ExamPaperQuestion {
   questionId Int
   question   ExamQuestion @relation(fields: [questionId], references: [id])
   order      Int          @default(0)
-  score      Int          @default(2)                 // 本题在此试卷中的分值
+  score      Int          @default(2) // 本题在此试卷中的分值
 
   @@unique([paperId, questionId])
 }
 
 model ExamAttempt {
-  id            Int       @id @default(autoincrement())
-  paperId       Int
-  paper         ExamPaper @relation(fields: [paperId], references: [id])
-  employeeId    Int
-  employee      Employee  @relation(fields: [employeeId], references: [id])
-  startTime     DateTime  @default(now())
-  endTime       DateTime?
-  score         Int?
-  totalScore    Int       @default(0)
-  answers       String?                                // JSON: [{questionId, userAnswer, isCorrect, score}]
-  status        String    @default("in_progress")      // in_progress/submitted/graded
-  screenSwitches Int     @default(0)                   // 切屏次数
-  createdAt     DateTime  @default(now())
+  id             Int       @id @default(autoincrement())
+  paperId        Int
+  paper          ExamPaper @relation(fields: [paperId], references: [id])
+  employeeId     Int
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  startTime      DateTime  @default(now())
+  endTime        DateTime?
+  score          Int?
+  totalScore     Int       @default(0)
+  answers        String? // JSON: [{questionId, userAnswer, isCorrect, score}]
+  status         String    @default("in_progress") // in_progress/submitted/graded
+  screenSwitches Int       @default(0) // 切屏次数
+  createdAt      DateTime  @default(now())
 
   @@unique([paperId, employeeId, id])
 }

@@ -67,7 +67,7 @@ export default function LoginPage() {
 
         <Form onFinish={onFinish} size="large" layout="vertical">
           <Form.Item name="username" rules={[{ required: true, message: "请输入用户名" }]}>
-            <Input prefix={<UserOutlined style={{ color: "#9ca3af" }} />} placeholder="用户名"
+            <Input prefix={<UserOutlined style={{ color: "#9ca3af" }} />} placeholder="姓名 / 工号 / 管理员账号"
               style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
           <Form.Item name="password" rules={[{ required: true, message: "请输入密码" }]}>

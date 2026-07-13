@@ -14,11 +14,16 @@ export async function POST(request: NextRequest) {
     let userData: { id: number; name: string; role: string };
 
     // Run both lookups together to avoid consecutive Neon round trips.
-    const [admin, employee] = await Promise.all([
+    const [admin, employeeByNo, employeesByName] = await Promise.all([
       prisma.admin.findUnique({ where: { username } }),
       prisma.employee.findUnique({
         where: { employeeNo: username },
-        select: { id: true, name: true, status: true, passwordHash: true },
+        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true },
+      }),
+      prisma.employee.findMany({
+        where: { name: username },
+        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true },
+        take: 2,
       }),
     ]);
     if (admin) {
@@ -29,6 +34,10 @@ export async function POST(request: NextRequest) {
       token = await signToken({ id: admin.id, username: admin.username, role: "admin" });
       userData = { id: admin.id, name: admin.username, role: "admin" };
     } else {
+      if (!employeeByNo && employeesByName.length > 1) {
+        return NextResponse.json({ success: false, message: "存在同名学员，请使用工号登录" }, { status: 409 });
+      }
+      const employee = employeeByNo || employeesByName[0];
       if (!employee || employee.status !== "active" || !employee.passwordHash) {
         return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
       }
