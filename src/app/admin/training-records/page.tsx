@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Table, Button, Drawer, Form, Input, Select, DatePicker, InputNumber, Space, Tag, message, Popconfirm, Radio, Upload, Descriptions } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, ImportOutlined, EyeOutlined, LinkOutlined, PlayCircleOutlined, FileTextOutlined, UploadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { upload } from "@vercel/blob/client";
 
 const formatLabels: Record<string, string> = { online: "线上", offline: "线下", hybrid: "混合" };
 const formatColors: Record<string, string> = { online: "blue", offline: "green", hybrid: "purple" };
@@ -18,6 +19,8 @@ export default function TrainingRecordsPage() {
   const [editingRecord, setEditingRecord] = useState<Record<string, unknown> | null>(null);
   const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [materialUploading, setMaterialUploading] = useState(false);
+  const [materialUploadProgress, setMaterialUploadProgress] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [formatFilter, setFormatFilter] = useState<string | undefined>();
@@ -57,6 +60,39 @@ export default function TrainingRecordsPage() {
   const handleDelete = async (id: number) => {
     await fetch(`/api/training-records/${id}`, { method: "DELETE" });
     message.success("删除成功"); fetchRecords();
+  };
+
+  const handleMaterialUpload = async (file: File) => {
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (!extension || !["ppt", "pptx", "pdf"].includes(extension)) {
+      message.error("仅支持 PPT、PPTX 和 PDF 文件");
+      return false;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      message.error("单个课件不能超过 50MB");
+      return false;
+    }
+
+    setMaterialUploading(true);
+    setMaterialUploadProgress(0);
+    try {
+      const blob = await upload(`training-materials/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/uploads/materials",
+        multipart: true,
+        onUploadProgress: ({ percentage }) => setMaterialUploadProgress(Math.round(percentage)),
+      });
+      const materials = form.getFieldValue("materials") || [];
+      form.setFieldValue("materials", [...materials, { name: file.name, url: blob.url, type: extension }]);
+      message.success(`${file.name} 上传成功`);
+    } catch (error) {
+      console.error(error);
+      message.error(error instanceof Error ? error.message : "课件上传失败，请重试");
+    } finally {
+      setMaterialUploading(false);
+      setMaterialUploadProgress(0);
+    }
+    return false;
   };
 
   const handleImport = async (file: File) => {
@@ -162,7 +198,21 @@ export default function TrainingRecordsPage() {
           <Form.Item name="recording" label="培训录屏链接">
             <Input placeholder="如：https://meeting.tencent.com/xxx" prefix={<PlayCircleOutlined />} />
           </Form.Item>
-          <Form.Item label="课件资料" help="格式：课件名称,链接（每行一个，录入后可在详情页查看）">
+          <Form.Item label="课件资料" help="可上传 PPT、PPTX、PDF（单个不超过 50MB），也可以继续手工添加链接。">
+            <Upload.Dragger
+              accept=".ppt,.pptx,.pdf"
+              multiple
+              disabled={materialUploading}
+              beforeUpload={(file) => { void handleMaterialUpload(file); return false; }}
+              showUploadList={false}
+              style={{ marginBottom: 12 }}
+            >
+              <UploadOutlined style={{ fontSize: 30, color: "#0b3b72" }} />
+              <p style={{ margin: "8px 0 2px", fontWeight: 600 }}>
+                {materialUploading ? `正在上传 ${materialUploadProgress}%` : "点击或拖拽本地课件到这里"}
+              </p>
+              <p style={{ margin: 0, color: "#8a98aa", fontSize: 12 }}>支持 PPT、PPTX、PDF，上传后自动加入下方列表</p>
+            </Upload.Dragger>
             <Form.List name="materials">
               {(fields, { add, remove }) => (
                 <>
