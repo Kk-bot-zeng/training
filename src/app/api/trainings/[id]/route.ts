@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const training = await prisma.training.findUnique({
       where: { id: parseInt(id) },
@@ -55,6 +57,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const body = await request.json();
     const training = await prisma.training.findUnique({ where: { id: parseInt(id) } });
@@ -124,6 +127,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     await prisma.training.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ success: true, message: "删除成功" });

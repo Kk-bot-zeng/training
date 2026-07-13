@@ -37,6 +37,9 @@ export function assertCheckinOpen(training: { date: Date; startTime: string; sta
   if (training.status === "completed") throw new Error("TRAINING_ENDED");
   const now = new Date();
   const window = getCheckinWindow(training);
+  // Starting a training in the admin portal explicitly opens check-in,
+  // regardless of the originally scheduled start time.
+  if (training.status === "ongoing") return window;
   if (now < window.opensAt) throw new Error("CHECKIN_NOT_OPEN");
   if (now > window.closesAt) throw new Error("CHECKIN_CLOSED");
   return window;
