@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { assertCheckinOpen, getCheckinWindow, resolveDynamicQrToken } from "@/lib/checkin";
+import { assertCheckinOpen, createScanSession, getCheckinWindow, resolveDynamicQrToken, scanCookie } from "@/lib/checkin";
 
 const errorMessages: Record<string, string> = {
   QR_EXPIRED: "二维码已更新，请重新扫描现场二维码",
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const training = await resolveDynamicQrToken(token);
     assertCheckinOpen(training);
     const window = getCheckinWindow(training);
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         id: training.id, title: training.title, type: training.type, date: training.date,
@@ -23,6 +23,12 @@ export async function GET(request: NextRequest) {
         status: training.status, checkinClosesAt: window.closesAt,
       },
     });
+    const scanToken = await createScanSession(training.id, training.qrToken);
+    response.cookies.set(scanCookie.name, scanToken, {
+      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+      maxAge: scanCookie.maxAge, path: "/",
+    });
+    return response;
   } catch (error) {
     const code = error instanceof Error ? error.message : "";
     return NextResponse.json({ success: false, message: errorMessages[code] || "签到二维码无效" }, { status: 400 });

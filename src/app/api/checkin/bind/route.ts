@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { assertCheckinOpen, createDeviceToken, deviceCookie, requestMeta, resolveDynamicQrToken } from "@/lib/checkin";
+import { assertCheckinOpen, createDeviceToken, deviceCookie, requestMeta, resolveCheckinAccess } from "@/lib/checkin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!qrToken || !identifier?.trim() || !password) {
       return NextResponse.json({ success: false, message: "请输入姓名或工号和密码" }, { status: 400 });
     }
-    const training = await resolveDynamicQrToken(qrToken);
+    const training = await resolveCheckinAccess(qrToken);
     assertCheckinOpen(training);
     const [employeeByNo, employeesByName] = await Promise.all([
       prisma.employee.findFirst({

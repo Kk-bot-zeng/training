@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const secret = new TextEncoder().encode(`${process.env.JWT_SECRET || "training-attendance-secret-key"}:checkin`);
 const DEVICE_COOKIE = "checkin_device";
+const SCAN_COOKIE = "checkin_scan";
 
 export async function createDynamicQrToken(trainingId: number, qrVersion: string) {
   return new SignJWT({ trainingId, qrVersion, purpose: "checkin-qr" })
@@ -15,6 +16,27 @@ export async function createDynamicQrToken(trainingId: number, qrVersion: string
 export async function resolveDynamicQrToken(token: string) {
   const { payload } = await jwtVerify(token, secret);
   if (payload.purpose !== "checkin-qr") throw new Error("QR_EXPIRED");
+  const training = await prisma.training.findUnique({ where: { id: Number(payload.trainingId) } });
+  if (!training || training.qrToken !== payload.qrVersion) throw new Error("QR_EXPIRED");
+  return training;
+}
+
+export async function createScanSession(trainingId: number, qrVersion: string) {
+  return new SignJWT({ trainingId, qrVersion, purpose: "checkin-scan" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("15m")
+    .sign(secret);
+}
+
+export async function resolveCheckinAccess(qrToken?: string) {
+  if (qrToken) {
+    try { return await resolveDynamicQrToken(qrToken); } catch {}
+  }
+  const cookieStore = await cookies();
+  const scanToken = cookieStore.get(SCAN_COOKIE)?.value;
+  if (!scanToken) throw new Error("QR_EXPIRED");
+  const { payload } = await jwtVerify(scanToken, secret);
+  if (payload.purpose !== "checkin-scan") throw new Error("QR_EXPIRED");
   const training = await prisma.training.findUnique({ where: { id: Number(payload.trainingId) } });
   if (!training || training.qrToken !== payload.qrVersion) throw new Error("QR_EXPIRED");
   return training;
@@ -64,6 +86,7 @@ export async function getBoundDevice() {
 }
 
 export const deviceCookie = { name: DEVICE_COOKIE, maxAge: 60 * 60 * 24 * 90 };
+export const scanCookie = { name: SCAN_COOKIE, maxAge: 60 * 15 };
 
 export function requestMeta(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");

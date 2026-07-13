@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { assertCheckinOpen, getBoundDevice, requestMeta, resolveDynamicQrToken } from "@/lib/checkin";
+import { assertCheckinOpen, getBoundDevice, requestMeta, resolveCheckinAccess } from "@/lib/checkin";
 
 export async function POST(request: NextRequest) {
   try {
     const { qrToken } = await request.json();
     if (!qrToken) return NextResponse.json({ success: false, message: "参数错误" }, { status: 400 });
-    const [training, binding] = await Promise.all([resolveDynamicQrToken(qrToken), getBoundDevice()]);
+    const [training, binding] = await Promise.all([resolveCheckinAccess(qrToken), getBoundDevice()]);
     const window = assertCheckinOpen(training);
     const employee = binding.employee;
     const departmentIds = JSON.parse(training.departmentIds) as number[];
