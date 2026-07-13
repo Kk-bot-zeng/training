@@ -81,6 +81,22 @@ export default function TrainingRecordsPage() {
       if (!statusResponse.ok || !status.configured) {
         throw new Error(status.message || "Vercel Blob 读写令牌尚未配置到生产环境");
       }
+      const presignResponse = await fetch("/api/uploads/materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "blob.generate-presigned-url",
+          payload: {
+            pathname: `training-materials/${file.name}`,
+            clientPayload: null,
+            multipart: true,
+          },
+        }),
+      });
+      if (!presignResponse.ok) {
+        const presignError = await presignResponse.json().catch(() => null);
+        throw new Error(presignError?.error || "Vercel Blob 无法生成上传地址");
+      }
       const blob = await uploadPresigned(`training-materials/${file.name}`, file, {
         access: "public",
         handleUploadUrl: "/api/uploads/materials",

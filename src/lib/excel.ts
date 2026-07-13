@@ -2,9 +2,8 @@ import * as XLSX from "xlsx";
 
 export interface EmployeeImportRow {
   name: string;
-  employeeNo: string;
   departmentName: string;
-  phone?: string;
+  password: string;
 }
 
 export function parseEmployeeExcel(buffer: ArrayBuffer): EmployeeImportRow[] {
@@ -14,13 +13,10 @@ export function parseEmployeeExcel(buffer: ArrayBuffer): EmployeeImportRow[] {
 
   return rows.map((row) => ({
     name: (row["姓名"] || row["name"] || "").toString().trim(),
-    employeeNo: (row["工号"] || row["employeeNo"] || row["工號"] || "")
-      .toString()
-      .trim(),
     departmentName: (row["部门"] || row["department"] || row["部門"] || "")
       .toString()
       .trim(),
-    phone: (row["手机号"] || row["phone"] || row["手機號"] || "")
+    password: (row["密码"] || row["password"] || row["密碼"] || "")
       .toString()
       .trim(),
   }));

@@ -67,7 +67,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const learners = new Map<number, {
       employeeId: number;
       name: string;
-      employeeNo: string;
+      employeeNo: string | null;
       department: string;
       attempts: Record<string, unknown>[];
     }>();
@@ -95,7 +95,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         name: attempt.employee.name,
         employeeNo: attempt.employee.employeeNo,
         department: attempt.employee.department.name,
-        attempts: [],
+        attempts: [] as Record<string, unknown>[],
       };
       row.attempts.push({
         id: attempt.id,

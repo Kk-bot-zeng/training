@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseEmployeeExcel } from "@/lib/excel";
+import { getAuthAdmin } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -25,8 +28,13 @@ export async function POST(request: NextRequest) {
       const row = rows[i];
       const lineNum = i + 2; // Excel row (1-indexed + header)
 
-      if (!row.name || !row.employeeNo || !row.departmentName) {
-        errors.push(`第${lineNum}行: 姓名/工号/部门不能为空`);
+      if (!row.name || !row.departmentName || !row.password) {
+        errors.push(`第${lineNum}行: 姓名、部门和密码不能为空`);
+        skipped++;
+        continue;
+      }
+      if (row.password.length < 4) {
+        errors.push(`第${lineNum}行: 密码至少4位`);
         skipped++;
         continue;
       }
@@ -43,22 +51,15 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Check duplicate employeeNo
-      const existing = await prisma.employee.findUnique({
-        where: { employeeNo: row.employeeNo },
-      });
-      if (existing) {
-        skipped++;
-        continue;
-      }
-
       try {
+        const passwordHash = await bcrypt.hash(row.password, 10);
         await prisma.employee.create({
           data: {
             name: row.name,
-            employeeNo: row.employeeNo,
+            employeeNo: null,
             departmentId: department.id,
-            phone: row.phone || null,
+            phone: null,
+            passwordHash,
             status: "active",
           },
         });

@@ -339,7 +339,7 @@ export default function EmployeesPage() {
       >
         <div className="mb-4">
           <p className="mb-2 text-gray-500">
-            请上传 Excel 文件（.xlsx / .xls），表头需包含：<strong>姓名、工号、部门、手机号</strong>
+            请上传 Excel 文件（.xlsx / .xls），表头需包含：<strong>姓名、部门、密码</strong>
           </p>
           <Button
             icon={<DownloadOutlined />}
@@ -348,8 +348,8 @@ export default function EmployeesPage() {
               // Generate template download
               const XLSX = require("xlsx");
               const ws = XLSX.utils.aoa_to_sheet([
-                ["姓名", "工号", "部门", "手机号"],
-                ["张三", "EMP001", "技术部", "13800138000"],
+                ["姓名", "部门", "密码"],
+                ["张三", "技术部", "123456"],
               ]);
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, "员工导入模板");

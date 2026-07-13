@@ -10,7 +10,7 @@ export interface Department {
 export interface Employee {
   id: number;
   name: string;
-  employeeNo: string;
+  employeeNo: string | null;
   departmentId: number;
   department?: Department;
   status: "active" | "inactive";

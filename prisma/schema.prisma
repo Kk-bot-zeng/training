@@ -16,7 +16,7 @@ model Department {
 model Employee {
   id            Int            @id @default(autoincrement())
   name          String
-  employeeNo    String         @unique
+  employeeNo    String?        @unique
   departmentId  Int
   department    Department     @relation(fields: [departmentId], references: [id])
   status        String         @default("active")

@@ -77,6 +77,8 @@ export async function POST(request: Request) {
         urlOptions: {
           access: "public",
           addRandomSuffix: true,
+          allowedContentTypes: ALLOWED_CONTENT_TYPES,
+          maximumSizeInBytes: 50 * 1024 * 1024,
         },
       }),
     });
