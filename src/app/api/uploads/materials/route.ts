@@ -1,4 +1,5 @@
 import { issueSignedToken } from "@vercel/blob";
+import { getVercelOidcToken } from "@vercel/oidc";
 import {
   handleUploadPresigned,
   type HandleUploadPresignedBody,
@@ -15,12 +16,37 @@ const ALLOWED_CONTENT_TYPES = [
 export async function GET() {
   try {
     await getAuthAdmin();
+    const storeId = process.env.BLOB_STORE_ID;
+    if (!storeId) {
+      return NextResponse.json({
+        success: false,
+        configured: false,
+        message: "Vercel Blob Store 尚未连接到当前生产环境",
+      });
+    }
+
+    const oidcToken = await getVercelOidcToken();
+    await issueSignedToken({
+      storeId,
+      oidcToken,
+      pathname: "training-materials/connection-check",
+      operations: ["put"],
+      maximumSizeInBytes: 1,
+    });
     return NextResponse.json({
       success: true,
-      configured: Boolean(process.env.BLOB_STORE_ID),
+      configured: true,
     });
-  } catch {
-    return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
+  } catch (error) {
+    console.error("Blob connection check error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        configured: false,
+        message: error instanceof Error ? error.message : "Blob 连接检查失败",
+      },
+      { status: 400 },
+    );
   }
 }
 
@@ -35,12 +61,14 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as HandleUploadPresignedBody;
+    const oidcToken = await getVercelOidcToken();
     const response = await handleUploadPresigned({
       body,
       request,
       getSignedToken: async (pathname) => ({
         token: await issueSignedToken({
           storeId: process.env.BLOB_STORE_ID,
+          oidcToken,
           pathname,
           operations: ["put"],
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
