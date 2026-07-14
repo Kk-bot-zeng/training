@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const { name, employeeNo, departmentId, phone, status } =
       await request.json();
@@ -37,17 +39,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
-    // Soft delete - set status to inactive
-    await prisma.employee.update({
-      where: { id: parseInt(id) },
-      data: { status: "inactive" },
+    const employeeId = parseInt(id);
+    await prisma.$transaction(async (tx) => {
+      await tx.checkinAudit.deleteMany({ where: { employeeId } });
+      await tx.attendance.deleteMany({ where: { employeeId } });
+      await tx.examAttempt.deleteMany({ where: { employeeId } });
+      await tx.deviceBinding.deleteMany({ where: { employeeId } });
+      await tx.employee.delete({ where: { id: employeeId } });
     });
-    return NextResponse.json({ success: true, message: "已设置为离职" });
+    return NextResponse.json({ success: true, message: "员工账号已彻底删除" });
   } catch (error) {
     console.error("Delete employee error:", error);
     return NextResponse.json(
-      { success: false, message: "操作失败" },
+      { success: false, message: "删除员工账号失败" },
       { status: 500 }
     );
   }

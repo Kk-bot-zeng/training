@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const { name } = await request.json();
     if (!name?.trim()) {
@@ -34,22 +36,32 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const departmentId = parseInt(id);
 
-    // Check if department has employees
-    const employeeCount = await prisma.employee.count({
-      where: { departmentId, status: "active" },
-    });
-    if (employeeCount > 0) {
-      return NextResponse.json(
-        { success: false, message: "该部门下还有在职员工，无法删除" },
-        { status: 400 }
-      );
-    }
+    const deletedCount = await prisma.$transaction(async (tx) => {
+      const employees = await tx.employee.findMany({
+        where: { departmentId },
+        select: { id: true },
+      });
+      const employeeIds = employees.map((employee) => employee.id);
 
-    await prisma.department.delete({ where: { id: departmentId } });
-    return NextResponse.json({ success: true, message: "删除成功" });
+      if (employeeIds.length > 0) {
+        const employeeFilter = { employeeId: { in: employeeIds } };
+        await tx.checkinAudit.deleteMany({ where: employeeFilter });
+        await tx.attendance.deleteMany({ where: employeeFilter });
+        await tx.examAttempt.deleteMany({ where: employeeFilter });
+        await tx.deviceBinding.deleteMany({ where: employeeFilter });
+        await tx.employee.deleteMany({ where: { id: { in: employeeIds } } });
+      }
+      await tx.department.delete({ where: { id: departmentId } });
+      return employeeIds.length;
+    });
+    return NextResponse.json({
+      success: true,
+      message: `部门及其 ${deletedCount} 名员工已彻底删除`,
+    });
   } catch (error) {
     console.error("Delete department error:", error);
     return NextResponse.json(

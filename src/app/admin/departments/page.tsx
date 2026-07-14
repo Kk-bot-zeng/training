@@ -47,7 +47,7 @@ export default function DepartmentsPage() {
   const handleDelete = async (id: number) => {
     const res = await fetch(`/api/departments/${id}`, { method: "DELETE" });
     const data = await res.json();
-    if (data.success) { message.success("删除成功"); fetchDepartments(); }
+    if (data.success) { message.success(data.message || "删除成功"); fetchDepartments(); }
     else message.error(data.message);
   };
 
@@ -59,7 +59,14 @@ export default function DepartmentsPage() {
     { title: "操作", key: "actions", width: 160, render: (_: unknown, record: Department) => (
         <Space>
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditingDept(record); form.setFieldsValue({ name: record.name }); setModalOpen(true); }}>编辑</Button>
-          <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm
+            title={`确定删除“${record.name}”部门？`}
+            description={`删除后，该部门及部门下 ${record._count?.employees || 0} 名员工账号、考勤和考试记录都将被彻底删除，且无法恢复。`}
+            okText="确定彻底删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record.id)}
+          >
             <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除</Button>
           </Popconfirm>
         </Space>

@@ -210,8 +210,15 @@ export default function EmployeesPage() {
             }}>
             密码
           </Button>
-          <Popconfirm title="确定将该员工设为离职？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>离职</Button>
+          <Popconfirm
+            title={`确定删除“${record.name}”的账号？`}
+            description="删除后，该员工账号及其设备绑定、考勤和考试记录都将被彻底删除，且无法恢复。"
+            okText="确定彻底删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => handleDelete(record.id)}
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>删除账号</Button>
           </Popconfirm>
         </Space>
       ),
