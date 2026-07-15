@@ -305,9 +305,8 @@ export default function EmployeesPage() {
           <Form.Item
             name="employeeNo"
             label="工号"
-            rules={[{ required: true, message: "请输入工号" }]}
           >
-            <Input placeholder="唯一工号" disabled={!!editingEmp} />
+            <Input placeholder="工号（选填）" disabled={!!editingEmp} />
           </Form.Item>
           <Form.Item
             name="departmentId"

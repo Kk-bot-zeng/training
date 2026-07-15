@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,30 +37,34 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const { name, employeeNo, departmentId, phone, status } =
       await request.json();
+    const normalizedEmployeeNo = employeeNo?.trim() || null;
 
-    if (!name?.trim() || !employeeNo?.trim() || !departmentId) {
+    if (!name?.trim() || !departmentId) {
       return NextResponse.json(
-        { success: false, message: "姓名、工号和部门不能为空" },
+        { success: false, message: "姓名和部门不能为空" },
         { status: 400 }
       );
     }
 
-    const existing = await prisma.employee.findUnique({
-      where: { employeeNo: employeeNo.trim() },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { success: false, message: "该工号已存在" },
-        { status: 400 }
-      );
+    if (normalizedEmployeeNo) {
+      const existing = await prisma.employee.findUnique({
+        where: { employeeNo: normalizedEmployeeNo },
+      });
+      if (existing) {
+        return NextResponse.json(
+          { success: false, message: "该工号已存在" },
+          { status: 400 }
+        );
+      }
     }
 
     const employee = await prisma.employee.create({
       data: {
         name: name.trim(),
-        employeeNo: employeeNo.trim(),
+        employeeNo: normalizedEmployeeNo,
         departmentId,
         phone: phone?.trim() || null,
         status: status || "active",

@@ -11,12 +11,13 @@ export async function PUT(
     const { id } = await params;
     const { name, employeeNo, departmentId, phone, status } =
       await request.json();
+    const normalizedEmployeeNo = employeeNo?.trim() || null;
 
     const employee = await prisma.employee.update({
       where: { id: parseInt(id) },
       data: {
         name: name?.trim(),
-        employeeNo: employeeNo?.trim(),
+        employeeNo: normalizedEmployeeNo,
         departmentId,
         phone: phone?.trim() || null,
         status,
