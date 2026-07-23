@@ -27,6 +27,9 @@ model Employee {
   examAttempts          ExamAttempt[]
   deviceBinding         DeviceBinding?
   assignmentSubmissions AssignmentSubmission[]
+
+  @@index([departmentId, status])
+  @@index([status, createdAt])
 }
 
 model DeviceBinding {
@@ -93,6 +96,7 @@ model Attendance {
 
   @@unique([trainingId, employeeId])
   @@index([employeeId])
+  @@index([employeeId, status])
   @@index([status])
 }
 

@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Row, Col, Table, Tag, Spin, Modal, DatePicker, Button, message, Tooltip } from "antd";
+import { useState } from "react";
+import useSWR from "swr";
+import { Row, Col, Table, Tag, Spin, Modal, DatePicker, message } from "antd";
 import {
   TeamOutlined, BookOutlined, PercentageOutlined, ApartmentOutlined,
   PlusOutlined, DownloadOutlined, CrownOutlined, RiseOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import dynamic from "next/dynamic";
 import dayjs from "dayjs";
 import type { OverviewStats } from "@/types";
 import { downloadFile } from "@/lib/download";
+import { fetcher, swrConfig } from "@/lib/fetcher";
 
 const { RangePicker } = DatePicker;
+
+const AttendanceTrendChart = dynamic(
+  () => import("@/components/admin-dashboard-charts").then((module) => module.AttendanceTrendChart),
+  { ssr: false, loading: () => <div style={{ height: 240 }} /> },
+);
+const DepartmentRateChart = dynamic(
+  () => import("@/components/admin-dashboard-charts").then((module) => module.DepartmentRateChart),
+  { ssr: false, loading: () => <div style={{ height: 240 }} /> },
+);
 
 const statCards = [
   { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", iconBg: "rgba(102,126,234,0.15)", iconColor: "#667eea", suffix: "人" },
@@ -21,43 +32,34 @@ const statCards = [
   { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", iconBg: "rgba(67,233,123,0.15)", iconColor: "#43e97b", suffix: "个" },
 ];
 
+const trendData = [
+  { month: "1月", rate: 92, count: 8 }, { month: "2月", rate: 88, count: 6 },
+  { month: "3月", rate: 95, count: 10 }, { month: "4月", rate: 91, count: 9 },
+  { month: "5月", rate: 94, count: 12 }, { month: "6月", rate: 96, count: 11 },
+];
+
+const empRank = [
+  { name: "张三", dept: "技术部", rate: 100, total: 12 },
+  { name: "李四", dept: "技术部", rate: 95, total: 10 },
+  { name: "钱七", dept: "产品部", rate: 93, total: 11 },
+  { name: "王五", dept: "销售部", rate: 88, total: 8 },
+  { name: "孙八", dept: "产品部", rate: 85, total: 9 },
+];
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<OverviewStats | null>(null);
-  const [trendData, setTrendData] = useState<{ month: string; rate: number; count: number }[]>([]);
-  const [deptRank, setDeptRank] = useState<{ name: string; rate: number; total: number }[]>([]);
-  const [empRank, setEmpRank] = useState<{ name: string; dept: string; rate: number; total: number }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/statistics/overview").then(r => r.json()),
-      fetch("/api/statistics/department").then(r => r.json()),
-    ]).then(([overview, dept]) => {
-      if (overview.success) setStats(overview.data);
-      if (dept.success) {
-        setDeptRank(dept.data.map((d: { name: string; rate: string; total: number }) => ({
-          name: d.name, rate: parseFloat(d.rate), total: d.total,
-        })));
-      }
-      // Mock trend data - in production this would come from API
-      setTrendData([
-        { month: "1月", rate: 92, count: 8 }, { month: "2月", rate: 88, count: 6 },
-        { month: "3月", rate: 95, count: 10 }, { month: "4月", rate: 91, count: 9 },
-        { month: "5月", rate: 94, count: 12 }, { month: "6月", rate: 96, count: 11 },
-      ]);
-      // Employee ranking
-      setEmpRank([
-        { name: "张三", dept: "技术部", rate: 100, total: 12 },
-        { name: "李四", dept: "技术部", rate: 95, total: 10 },
-        { name: "钱七", dept: "产品部", rate: 93, total: 11 },
-        { name: "王五", dept: "销售部", rate: 88, total: 8 },
-        { name: "孙八", dept: "产品部", rate: 85, total: 9 },
-      ]);
-    }).finally(() => setLoading(false));
-  }, []);
+  const { data: stats } = useSWR<OverviewStats>("/api/statistics/overview", fetcher, swrConfig);
+  const { data: departments } = useSWR<{ name: string; rate: string; total: number }[]>(
+    "/api/statistics/department", fetcher, swrConfig,
+  );
+  const deptRank = (departments || []).map((department) => ({
+    name: department.name,
+    rate: parseFloat(department.rate),
+    total: department.total,
+  }));
+  const loading = !stats || !departments;
 
   const handleExport = async () => {
     if (!dateRange) { message.warning("请选择日期范围"); return; }
@@ -120,15 +122,7 @@ export default function DashboardPage() {
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤率趋势</h3>
               <span style={{ fontSize: 12, color: "#9ca3af" }}>近6个月</span>
             </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[70, 100]} tick={{ fontSize: 12, fill: "#9ca3af" }} axisLine={false} tickLine={false} unit="%" />
-                <ReTooltip contentStyle={{ borderRadius: 8, border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                <Line type="monotone" dataKey="rate" stroke="#6384ff" strokeWidth={3} dot={{ r: 4, fill: "#6384ff" }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <AttendanceTrendChart data={trendData} />
           </div>
         </Col>
 
@@ -136,21 +130,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={10}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>🏆 部门出勤率对比</h3>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={deptRank} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} unit="%" />
-                <YAxis type="category" dataKey="name" width={60} tick={{ fontSize: 12, fill: "#4b5563" }} axisLine={false} tickLine={false} />
-                <ReTooltip contentStyle={{ borderRadius: 8, border: "none" }} />
-                <Bar dataKey="rate" radius={[0, 6, 6, 0]} fill="url(#barGrad)" />
-                <defs>
-                  <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#6384ff" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
+            <DepartmentRateChart data={deptRank} />
           </div>
         </Col>
       </Row>

@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
 
     const employee = await prisma.employee.findUnique({
       where: { id: parseInt(employeeId) },
-      include: { department: true },
+      select: {
+        id: true,
+        name: true,
+        employeeNo: true,
+        department: { select: { name: true } },
+      },
     });
 
     if (!employee) {
@@ -35,7 +40,10 @@ export async function GET(request: NextRequest) {
 
     const records = await prisma.attendance.findMany({
       where: { employeeId: employee.id },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        checkInTime: true,
         training: { select: { id: true, title: true, type: true, date: true } },
       },
       orderBy: { training: { date: "desc" } },
