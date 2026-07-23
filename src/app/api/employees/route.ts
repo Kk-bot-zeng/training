@@ -4,10 +4,14 @@ import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const { searchParams } = new URL(request.url);
     const departmentId = searchParams.get("departmentId");
     const status = searchParams.get("status");
     const search = searchParams.get("search") || "";
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize")) || 20));
+    const compact = searchParams.get("compact") === "true";
 
     const where: Record<string, unknown> = {};
     if (departmentId) where.departmentId = parseInt(departmentId);
@@ -19,13 +23,23 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const employees = await prisma.employee.findMany({
-      where,
-      include: { department: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const [employees, total] = await Promise.all([
+      prisma.employee.findMany({
+        where,
+        select: compact
+          ? { id: true, name: true, employeeNo: true, department: { select: { name: true } } }
+          : {
+              id: true, name: true, employeeNo: true, departmentId: true,
+              department: true, status: true, phone: true, createdAt: true,
+            },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.employee.count({ where }),
+    ]);
 
-    return NextResponse.json({ success: true, data: employees });
+    return NextResponse.json({ success: true, data: { items: employees, total, page, pageSize } });
   } catch (error) {
     console.error("Get employees error:", error);
     return NextResponse.json(

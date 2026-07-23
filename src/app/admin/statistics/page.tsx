@@ -55,12 +55,20 @@ export default function StatisticsPage() {
     fetchTrainings();
     fetchDeptComparison();
     // Load employees for personal search
-    fetch("/api/employees?pageSize=500")
+    fetch("/api/employees?pageSize=50&compact=true")
       .then((r) => r.json())
       .then((data) => {
-        if (data.success) setEmployees(data.data);
+        if (data.success) setEmployees(data.data.items);
       });
   }, []);
+
+  const searchEmployees = async (value: string) => {
+    const params = new URLSearchParams({ pageSize: "50", compact: "true" });
+    if (value.trim()) params.set("search", value.trim());
+    const res = await fetch(`/api/employees?${params}`);
+    const data = await res.json();
+    if (data.success) setEmployees(data.data.items);
+  };
 
   const fetchTrainingStats = useCallback(async () => {
     if (!selectedTrainingId) return;
@@ -264,9 +272,8 @@ export default function StatisticsPage() {
             value={empSearchId}
             onChange={handleEmployeeSearch}
             allowClear
-            filterOption={(input, option) =>
-              (option?.label as string)?.includes(input)
-            }
+            filterOption={false}
+            onSearch={searchEmployees}
             options={employees.map((e) => ({
               label: `${e.name} (${e.employeeNo})`,
               value: e.id,

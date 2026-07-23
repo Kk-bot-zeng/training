@@ -1,26 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const totalEmployees = await prisma.employee.count({
-      where: { status: "active" },
-    });
-    const activeDepartments = await prisma.department.count();
+    await getAuthAdmin();
 
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const totalTrainingsThisMonth = await prisma.training.count({
-      where: { date: { gte: firstOfMonth } },
-    });
-
-    // Average attendance rate across completed trainings
-    const completedTrainings = await prisma.training.findMany({
-      where: { status: "completed" },
-      include: { attendance: true },
-      orderBy: { date: "desc" },
-      take: 10,
-    });
+    const [totalEmployees, activeDepartments, totalTrainingsThisMonth, completedTrainings] = await Promise.all([
+      prisma.employee.count({ where: { status: "active" } }),
+      prisma.department.count(),
+      prisma.training.count({ where: { date: { gte: firstOfMonth } } }),
+      prisma.training.findMany({
+        where: { status: "completed" },
+        select: {
+          id: true, title: true, date: true,
+          attendance: { select: { status: true } },
+        },
+        orderBy: { date: "desc" },
+        take: 10,
+      }),
+    ]);
 
     let avgAttendanceRate = 0;
     if (completedTrainings.length > 0) {

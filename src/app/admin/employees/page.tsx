@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Table,
   Button,
@@ -35,6 +35,9 @@ export default function EmployeesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState<number | undefined>();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importResult, setImportResult] = useState<{
     total: number;
@@ -45,20 +48,25 @@ export default function EmployeesPage() {
   const [importing, setImporting] = useState(false);
   const [form] = Form.useForm();
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (deptFilter) params.set("departmentId", String(deptFilter));
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
 
       const res = await fetch(`/api/employees?${params}`);
       const data = await res.json();
-      if (data.success) setEmployees(data.data);
+      if (data.success) {
+        setEmployees(data.data.items);
+        setTotal(data.data.total);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [deptFilter, page, pageSize, search]);
 
   const fetchDepartments = async () => {
     const res = await fetch("/api/departments");
@@ -72,7 +80,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     fetchEmployees();
-  }, [search, deptFilter]);
+  }, [fetchEmployees]);
 
   const handleSubmit = async () => {
     try {
@@ -236,14 +244,14 @@ export default function EmployeesPage() {
           <Input.Search
             placeholder="搜索姓名/工号"
             allowClear
-            onSearch={setSearch}
+            onSearch={(value) => { setPage(1); setSearch(value); }}
             style={{ width: 200 }}
           />
           <Select
             placeholder="筛选部门"
             allowClear
             style={{ width: 150 }}
-            onChange={(v) => setDeptFilter(v)}
+            onChange={(v) => { setPage(1); setDeptFilter(v); }}
             options={departments.map((d) => ({ label: d.name, value: d.id }))}
           />
           <Button
@@ -272,7 +280,17 @@ export default function EmployeesPage() {
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 名员工` }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (count) => `共 ${count} 名员工`,
+          }}
+          onChange={(pagination) => {
+            setPage(pagination.current || 1);
+            setPageSize(pagination.pageSize || 20);
+          }}
           locale={{ emptyText: "暂无员工数据" }}
           scroll={{ x: 800 }}
         />

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const trainingId = request.nextUrl.searchParams.get("trainingId");
     if (!trainingId) {
       return NextResponse.json(

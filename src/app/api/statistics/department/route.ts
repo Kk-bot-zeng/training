@@ -1,59 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
+
+type DepartmentStat = { id: number; name: string; total: number; attended: number };
 
 export async function GET(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    const trainingWhere: Record<string, unknown> = {};
-    if (startDate) trainingWhere.date = { gte: new Date(startDate) };
-    if (endDate) {
-      trainingWhere.date = {
-        ...(trainingWhere.date as object),
-        lte: new Date(endDate),
-      };
-    }
+    const dateFilters: Prisma.Sql[] = [];
+    if (startDate) dateFilters.push(Prisma.sql`t."date" >= ${new Date(startDate)}`);
+    if (endDate) dateFilters.push(Prisma.sql`t."date" <= ${new Date(endDate)}`);
+    const dateClause = dateFilters.length
+      ? Prisma.sql`AND ${Prisma.join(dateFilters, " AND ")}`
+      : Prisma.empty;
 
-    const trainings = await prisma.training.findMany({
-      where: trainingWhere,
-      include: {
-        attendance: {
-          include: { employee: { select: { departmentId: true } } },
-        },
-      },
-    });
+    const deptStats = await prisma.$queryRaw<DepartmentStat[]>(Prisma.sql`
+      SELECT d."id", d."name",
+        COUNT(a."id")::int AS "total",
+        COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
+      FROM "Attendance" a
+      INNER JOIN "Employee" e ON e."id" = a."employeeId"
+      INNER JOIN "Department" d ON d."id" = e."departmentId"
+      INNER JOIN "Training" t ON t."id" = a."trainingId"
+      WHERE 1 = 1 ${dateClause}
+      GROUP BY d."id", d."name"
+    `);
 
-    // Aggregate by department
-    const deptStats: Record<
-      number,
-      { name: string; total: number; attended: number }
-    > = {};
-
-    const allDepts = await prisma.department.findMany();
-    for (const dept of allDepts) {
-      deptStats[dept.id] = { name: dept.name, total: 0, attended: 0 };
-    }
-
-    for (const training of trainings) {
-      for (const record of training.attendance) {
-        const deptId = record.employee.departmentId;
-        if (deptStats[deptId]) {
-          deptStats[deptId].total++;
-          if (["present", "late"].includes(record.status)) {
-            deptStats[deptId].attended++;
-          }
-        }
-      }
-    }
-
-    const result = Object.values(deptStats)
-      .filter((d) => d.total > 0)
-      .map((d) => ({
-        ...d,
-        rate: ((d.attended / d.total) * 100).toFixed(1) + "%",
-      }))
+    const result = deptStats
+      .map((d) => ({ ...d, rate: ((d.attended / d.total) * 100).toFixed(1) + "%" }))
       .sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate));
 
     return NextResponse.json({ success: true, data: result });
