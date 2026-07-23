@@ -14,6 +14,15 @@ type Assignment = {
 
 const ACCEPT = ".mp4,.mov,.avi,.webm,.mkv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,.txt,.csv,.zip,.rar,.jpg,.jpeg,.png,.gif,.webp";
 
+const CONTENT_TYPES: Record<string, string> = {
+  mp4: "video/mp4", mov: "video/quicktime", avi: "video/x-msvideo", webm: "video/webm", mkv: "video/x-matroska",
+  doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  pdf: "application/pdf", txt: "text/plain", csv: "text/csv", zip: "application/zip", rar: "application/vnd.rar",
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp",
+};
+
 export default function PortalAssignmentsPage() {
   const [items, setItems] = useState<Assignment[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -33,14 +42,19 @@ export default function PortalAssignmentsPage() {
   }, []);
 
   const upload = async (assignmentId: number, file: File) => {
+    if (file.size === 0) { message.error("不能上传空文件，请重新选择文件"); return false; }
     if (file.size > 200 * 1024 * 1024) { message.error("单个文件不能超过 200MB"); return false; }
     setActiveId(assignmentId); setProgress(0);
     try {
       const stored = JSON.parse(localStorage.getItem("user") || "{}");
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const contentType = CONTENT_TYPES[extension];
+      if (!contentType) throw new Error("不支持该文件格式，请上传页面提示的文件类型");
       const path = `assignment-files/${stored.id}/${assignmentId}/${file.lastModified}-${file.size}-${safeName}`;
       const blob = await uploadPresigned(path, file, {
-        access: "public", handleUploadUrl: "/api/uploads/assignments", multipart: true,
+        access: "public", handleUploadUrl: "/api/uploads/assignments", contentType,
+        multipart: file.size >= 20 * 1024 * 1024,
         onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
       });
       setFiles((prev) => ({ ...prev, [assignmentId]: [...(prev[assignmentId] || []), { name: file.name, url: blob.url, type: file.type, size: file.size }] }));
