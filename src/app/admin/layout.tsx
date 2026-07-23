@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider } from "antd";
+import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider, Drawer, Grid } from "antd";
 import {
   DashboardOutlined, ApartmentOutlined, TeamOutlined, BookOutlined,
   CheckCircleOutlined, BarChartOutlined, LogoutOutlined, MenuFoldOutlined,
   MenuUnfoldOutlined, UserOutlined, HomeOutlined, FolderOpenOutlined,
   EditOutlined, FileTextOutlined, FormOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
@@ -53,9 +54,12 @@ const breadcrumbMap: Record<string, string> = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [username, setUsername] = useState("");
   const router = useRouter();
   const pathname = usePathname();
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -115,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       darkItemHoverBg: "rgba(255,255,255,0.05)", darkGroupTitleColor: "#52748b",
     }}}}>
       <Layout className="admin-shell" style={{ minHeight: "100vh", overflow: "hidden" }}>
-        <Sider trigger={null} collapsible collapsed={collapsed} width={240}
+        {!isMobile && <Sider trigger={null} collapsible collapsed={collapsed} width={240}
           className="ocean-sider" style={{ borderRight: "none" }}>
           <div className="ocean-brand" style={{ justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 24px" }}>
             <div className="ocean-mark">T</div>
@@ -124,13 +128,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", borderRight: "none", padding: "8px", fontSize: 14 }} />
-        </Sider>
+        </Sider>}
+
+        <Drawer
+          placement="left"
+          width={280}
+          open={isMobile && mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          styles={{ body: { padding: 0 }, header: { display: "none" } }}
+          className="ocean-mobile-drawer"
+        >
+          <div className="ocean-sider mobile-menu-panel">
+            <div className="ocean-brand" style={{ padding: "0 22px" }}>
+              <div className="ocean-mark">T</div>
+              <div><span className="ocean-brand-name">雷鸟培训</span><small>LEARNING HUB</small></div>
+            </div>
+            <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
+              onClick={({ key }) => { setMobileMenuOpen(false); router.push(key); }}
+              style={{ background: "transparent", padding: 8 }} />
+          </div>
+        </Drawer>
 
         <Layout className="ocean-workspace">
           <div className="ocean-topbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setCollapsed(!collapsed)} style={{ fontSize: 16, color: "#4b5563" }} />
+              <Button type="text" icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => isMobile ? setMobileMenuOpen(true) : setCollapsed(!collapsed)} style={{ fontSize: 16, color: "#4b5563" }} />
               <Breadcrumb
                 items={breadcrumbItems as never}
                 style={{ fontSize: 13 }}

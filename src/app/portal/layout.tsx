@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, ConfigProvider } from "antd";
-import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined, FormOutlined } from "@ant-design/icons";
+import { Layout, Menu, Avatar, Dropdown, ConfigProvider, Drawer, Grid, Button } from "antd";
+import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined, FormOutlined, MenuOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 
@@ -18,8 +18,11 @@ const menuItems = [
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<{ name: string; role: string }>({ name: "", role: "" });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.md === false;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -49,7 +52,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <ConfigProvider theme={{ token: { colorPrimary: "#25c9a5", borderRadius: 12, colorText: "#153247", colorBgLayout: "#edf3f5" }, components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "rgba(52,213,177,0.14)", darkItemSelectedColor: "#42debb", darkItemColor: "#87a5b8", darkItemHoverBg: "rgba(255,255,255,0.05)" } } }}>
       <Layout className="portal-shell" style={{ minHeight: "100vh" }}>
-        <Sider width={220} className="ocean-sider">
+        {!isMobile && <Sider width={220} className="ocean-sider">
           <div className="ocean-brand" style={{ padding: "0 22px" }}>
             <div className="ocean-mark">T</div>
             <div><span className="ocean-brand-name">雷鸟培训</span><small>STUDENT PORTAL</small></div>
@@ -57,10 +60,24 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", padding: "8px" }} />
-        </Sider>
+        </Sider>}
+        <Drawer placement="left" width={280} open={isMobile && mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)} styles={{ body: { padding: 0 }, header: { display: "none" } }}
+          className="ocean-mobile-drawer">
+          <div className="ocean-sider mobile-menu-panel">
+            <div className="ocean-brand" style={{ padding: "0 22px" }}>
+              <div className="ocean-mark">T</div>
+              <div><span className="ocean-brand-name">雷鸟培训</span><small>STUDENT PORTAL</small></div>
+            </div>
+            <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
+              onClick={({ key }) => { setMobileMenuOpen(false); router.push(key); }}
+              style={{ background: "transparent", padding: 8 }} />
+          </div>
+        </Drawer>
         <Layout className="ocean-workspace">
           <div className="ocean-topbar">
-            <div />
+            <Button className="mobile-menu-button" type="text" icon={<MenuOutlined />}
+              onClick={() => setMobileMenuOpen(true)} aria-label="打开导航菜单" />
             <Dropdown menu={{ items: [{ key: "logout", icon: <LogoutOutlined />, label: "退出", danger: true }], onClick: () => { document.cookie = "token=; path=/; max-age=0"; router.push("/login"); } }} placement="bottomRight">
               <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
                 <Avatar size={32} icon={<UserOutlined />} style={{ background: "#e8ecf4", color: "#4b5563" }} />

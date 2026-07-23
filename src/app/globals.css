@@ -125,6 +125,9 @@ body {
 .admin-shell .ant-statistic-content, .portal-shell .ant-statistic-content { color: var(--ink); font-weight: 700; letter-spacing: -.03em; }
 .admin-shell .ant-tag, .portal-shell .ant-tag { border-radius: 7px; border: 0; font-weight: 600; }
 .ant-drawer-content, .ant-modal-content { border-radius: 18px 0 0 18px; }
+.mobile-menu-button { display: none; }
+.mobile-menu-panel { min-height: 100vh; background: linear-gradient(180deg, var(--ocean-950), var(--ocean-900) 56%, #0a2335); }
+.ocean-mobile-drawer .ant-drawer-content { border-radius: 0 18px 18px 0; overflow: hidden; }
 
 .ocean-login::after {
   content: "";
@@ -164,12 +167,29 @@ body {
 @keyframes ocean-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 760px) {
-  .ocean-content { padding: 18px !important; }
-  .ocean-topbar { padding: 0 16px; }
-  .portal-shell .ocean-sider { max-width: 76px !important; min-width: 76px !important; width: 76px !important; flex: 0 0 76px !important; }
-  .portal-shell .ocean-brand { justify-content: center; padding: 0 !important; }
-  .portal-shell .ocean-brand > div:last-child { display: none; }
-  .portal-shell .ant-menu-title-content { display: none; }
-  .portal-shell .ant-menu-item { padding-inline: 20px !important; }
+  html, body { overflow-x: hidden; }
+  .ocean-content { height: calc(100dvh - 56px); padding: 14px !important; }
+  .ocean-topbar { height: 56px; flex-basis: 56px; padding: 0 10px; }
+  .mobile-menu-button { display: inline-flex; font-size: 18px; }
+  .admin-shell .ant-breadcrumb { display: none; }
+  .ocean-topbar .ant-avatar + span { display: none; }
+  .ocean-content h1 { font-size: 21px !important; }
+  .ocean-content h1 + p { font-size: 13px !important; }
+  .admin-shell .ant-card-body, .portal-shell .ant-card-body { padding: 16px; }
+  .admin-shell .ant-table-wrapper, .portal-shell .ant-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-shell .ant-table, .portal-shell .ant-table { min-width: 640px; }
+  .admin-shell .ant-pagination, .portal-shell .ant-pagination { justify-content: center; flex-wrap: wrap; }
+  .admin-shell .ant-modal, .portal-shell .ant-modal { max-width: calc(100vw - 24px); margin: 12px auto; }
+  .ant-modal-content { border-radius: 16px !important; padding: 16px !important; }
+  .ant-drawer { max-width: 86vw; }
+  .ant-form-item .ant-picker, .ant-form-item .ant-select, .ant-form-item .ant-input-number { width: 100% !important; }
+  .portal-shell .ant-col-6 { flex: 0 0 50%; max-width: 50%; }
+  .portal-shell .ant-statistic-content { font-size: 22px; }
+  .ocean-content [style*="width: 200px"], .ocean-content [style*="width: 150px"] { width: 100% !important; }
   .ocean-login-card { padding: 36px 24px !important; }
+}
+
+@media (max-width: 390px) {
+  .ocean-content { padding: 10px !important; }
+  .portal-shell .ant-col-6 { flex: 0 0 100%; max-width: 100%; }
 }
