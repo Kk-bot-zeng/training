@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, ConfigProvider } from "antd";
-import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined } from "@ant-design/icons";
+import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined, FormOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 
@@ -11,6 +11,7 @@ const menuItems = [
   { key: "/portal", icon: <DashboardOutlined />, label: "首页" },
   { key: "/portal/exams", icon: <EditOutlined />, label: "我的考试" },
   { key: "/portal/trainings", icon: <BookOutlined />, label: "学习资料" },
+  { key: "/portal/assignments", icon: <FormOutlined />, label: "我的作业" },
   { key: "/portal/attendance", icon: <CheckCircleOutlined />, label: "我的考勤" },
   { key: "/portal/scores", icon: <BarChartOutlined />, label: "成绩记录" },
 ];

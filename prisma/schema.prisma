@@ -14,18 +14,19 @@ model Department {
 }
 
 model Employee {
-  id            Int            @id @default(autoincrement())
-  name          String
-  employeeNo    String?        @unique
-  departmentId  Int
-  department    Department     @relation(fields: [departmentId], references: [id])
-  status        String         @default("active")
-  phone         String?
-  passwordHash  String? // 学员登录密码（bcrypt哈希）
-  createdAt     DateTime       @default(now())
-  attendance    Attendance[]
-  examAttempts  ExamAttempt[]
-  deviceBinding DeviceBinding?
+  id                    Int                    @id @default(autoincrement())
+  name                  String
+  employeeNo            String?                @unique
+  departmentId          Int
+  department            Department             @relation(fields: [departmentId], references: [id])
+  status                String                 @default("active")
+  phone                 String?
+  passwordHash          String? // 学员登录密码（bcrypt哈希）
+  createdAt             DateTime               @default(now())
+  attendance            Attendance[]
+  examAttempts          ExamAttempt[]
+  deviceBinding         DeviceBinding?
+  assignmentSubmissions AssignmentSubmission[]
 }
 
 model DeviceBinding {
@@ -104,6 +105,34 @@ model TrainingRecord {
   materials        String? // 课件 JSON: [{name, url, type}]
   recording        String? // 培训录屏URL
   createdAt        DateTime @default(now())
+}
+
+// ========== 作业系统 ==========
+
+model Assignment {
+  id          Int                    @id @default(autoincrement())
+  title       String
+  description String?
+  dueDate     DateTime
+  status      String                 @default("published") // published/closed
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  employeeId   Int
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  files        String // JSON: [{name,url,type,size}]
+  comment      String?
+  submittedAt  DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, employeeId])
+  @@index([employeeId, submittedAt])
 }
 
 // ========== 考试系统 ==========

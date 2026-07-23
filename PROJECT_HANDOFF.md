@@ -116,6 +116,19 @@ prisma db push && next build
 - 删除顺序包含 `CheckinAudit`、`Attendance`、`ExamAttempt`、`DeviceBinding`、`Employee`，使用 Prisma 事务，失败会整体回滚。
 - 前端确认框明确提示不可恢复，API 使用 `getAuthAdmin()`。
 
+### 作业提交
+
+- 管理员端新增“作业管理”，支持发布、编辑、关闭、删除作业并查看学员提交记录。
+- 学员端新增“我的作业”，支持在截止时间前提交或更新作业。
+- 作业支持多文件提交，包括视频、Office、PDF、图片、文本和压缩包，单文件上限 200MB。
+- 作业文件使用 Vercel Blob，数据库保存文件名称、URL、类型和大小等元数据。
+- 数据模型：`Assignment`、`AssignmentSubmission`。
+- 相关代码：
+  - `src/app/admin/assignments/page.tsx`
+  - `src/app/portal/assignments/page.tsx`
+  - `src/app/api/assignments/`
+  - `src/app/api/uploads/assignments/route.ts`
+
 ## 7. 数据模型
 
 Prisma 主要模型：
