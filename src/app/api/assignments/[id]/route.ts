@@ -6,12 +6,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     await getAuthAdmin();
     const { id } = await params;
-    const { title, description, dueDate, status } = await request.json();
+    const { title, description, departmentIds, dueDate, status } = await request.json();
     const assignment = await prisma.assignment.update({
       where: { id: Number(id) },
       data: {
         title: title?.trim(),
         description: description?.trim() || null,
+        departmentIds: Array.isArray(departmentIds) ? JSON.stringify(departmentIds.map(Number)) : undefined,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         status,
       },

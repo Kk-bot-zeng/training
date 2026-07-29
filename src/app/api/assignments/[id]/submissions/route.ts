@@ -28,12 +28,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!Array.isArray(files) || files.length === 0) {
       return NextResponse.json({ success: false, message: "请至少上传一个作业文件" }, { status: 400 });
     }
-    const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
+    const [assignment, employee] = await Promise.all([
+      prisma.assignment.findUnique({ where: { id: assignmentId } }),
+      prisma.employee.findUnique({ where: { id: user.id }, select: { departmentId: true } }),
+    ]);
     if (!assignment || assignment.status !== "published") {
       return NextResponse.json({ success: false, message: "该作业不可提交" }, { status: 400 });
     }
     if (assignment.dueDate.getTime() < Date.now()) {
       return NextResponse.json({ success: false, message: "已超过作业截止时间" }, { status: 400 });
+    }
+    const departmentIds = JSON.parse(assignment.departmentIds || "[]") as number[];
+    if (!employee || (departmentIds.length > 0 && !departmentIds.includes(employee.departmentId))) {
+      return NextResponse.json({ success: false, message: "您不在该作业的提交范围内" }, { status: 403 });
     }
     const data = {
       files: JSON.stringify(files),

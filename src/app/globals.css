@@ -185,6 +185,10 @@ body {
   .ant-form-item .ant-picker, .ant-form-item .ant-select, .ant-form-item .ant-input-number { width: 100% !important; }
   .portal-shell .ant-col-6 { flex: 0 0 50%; max-width: 50%; }
   .portal-shell .ant-statistic-content { font-size: 22px; }
+  .assignment-submit-card .ant-card-head { padding: 12px 16px; }
+  .assignment-submit-card .ant-card-head-wrapper { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .assignment-submit-card .ant-card-extra { margin-inline-start: 0; font-size: 12px; }
+  .assignment-submit-card .ant-upload-drag { padding: 12px 8px !important; }
   .ocean-content [style*="width: 200px"], .ocean-content [style*="width: 150px"] { width: 100% !important; }
   .ocean-login-card { padding: 36px 24px !important; }
 }

@@ -31,7 +31,9 @@ export function proxy(request: NextRequest) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
       }
-      return NextResponse.redirect(new URL("/login", request.url));
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(loginUrl);
     }
     // Token exists — let the route handler verify it
     return NextResponse.next();

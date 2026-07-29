@@ -122,14 +122,15 @@ model TrainingRecord {
 // ========== 作业系统 ==========
 
 model Assignment {
-  id          Int                    @id @default(autoincrement())
-  title       String
-  description String?
-  dueDate     DateTime
-  status      String                 @default("published") // published/closed
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  submissions AssignmentSubmission[]
+  id            Int                    @id @default(autoincrement())
+  title         String
+  description   String?
+  departmentIds String                 @default("[]")
+  dueDate       DateTime
+  status        String                 @default("published") // published/closed
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  submissions   AssignmentSubmission[]
 
   @@index([status, dueDate])
 }

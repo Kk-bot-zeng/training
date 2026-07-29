@@ -21,7 +21,9 @@ export default function LoginPage() {
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.data));
         message.success("登录成功");
-        router.push(data.data.role === "admin" ? "/admin" : "/portal");
+        const nextPath = new URLSearchParams(window.location.search).get("next");
+        const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
+        router.push(safeNextPath || (data.data.role === "admin" ? "/admin" : "/portal"));
       }
       else message.error(data.message || "登录失败");
     } catch { message.error("网络错误"); }

@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/.playwright-cli/
+/.codex-mobile-server.pid
 
 # next.js
 /.next/
