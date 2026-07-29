@@ -50,8 +50,11 @@ export async function POST(request: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true, data: userData });
+    const secureCookie = process.env.AUTH_COOKIE_SECURE
+      ? process.env.AUTH_COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production";
     response.cookies.set("token", token, {
-      httpOnly: true, secure: process.env.NODE_ENV === "production",
+      httpOnly: true, secure: secureCookie,
       sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/",
     });
     return response;
