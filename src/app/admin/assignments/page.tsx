@@ -134,8 +134,8 @@ export default function AssignmentsAdminPage() {
     </Modal>
 
     <Modal title="扫码提交作业" open={!!qrAssignment} onCancel={() => setQrAssignment(null)} footer={null} width={420}>
-      {qrAssignment && <div style={{ textAlign: "center", padding: "12px 0" }}>
-        <QRCodeSVG value={`${typeof window === "undefined" ? "" : window.location.origin}/portal/assignments?assignmentId=${qrAssignment.id}`} size={240} level="M" includeMargin />
+      {qrAssignment && <div className="assignment-qr-content">
+        <QRCodeSVG className="assignment-qr-code" value={`${typeof window === "undefined" ? "" : window.location.origin}/portal/assignments?assignmentId=${qrAssignment.id}`} size={240} level="M" includeMargin />
         <Typography.Title level={4} style={{ margin: "10px 0 4px" }}>{qrAssignment.title}</Typography.Title>
         <Typography.Text type="secondary">学员使用手机扫码，登录后即可上传并提交文件</Typography.Text>
       </div>}

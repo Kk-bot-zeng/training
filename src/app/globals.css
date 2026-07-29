@@ -128,6 +128,8 @@ body {
 .mobile-menu-button { display: none; }
 .mobile-menu-panel { min-height: 100vh; background: linear-gradient(180deg, var(--ocean-950), var(--ocean-900) 56%, #0a2335); }
 .ocean-mobile-drawer .ant-drawer-content { border-radius: 0 18px 18px 0; overflow: hidden; }
+.assignment-qr-content { display: flex; flex-direction: column; align-items: center; padding: 12px 0; text-align: center; }
+.assignment-qr-code { display: block; width: min(240px, 100%); height: auto; margin: 0 auto; flex: 0 0 auto; }
 
 .ocean-login::after {
   content: "";

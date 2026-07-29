@@ -12,6 +12,14 @@ type Assignment = {
   submissions?: { files: string; comment?: string; submittedAt: string }[];
 };
 
+const SCRIPT_CONTENT_TYPES: Record<string, string> = {
+  py: "text/x-python", js: "text/javascript", jsx: "text/jsx", ts: "text/typescript", tsx: "text/tsx",
+  sh: "text/x-shellscript", bash: "text/x-shellscript", bat: "application/x-bat", cmd: "application/x-bat",
+  ps1: "text/plain", sql: "application/sql", json: "application/json", xml: "application/xml",
+  yaml: "application/yaml", yml: "application/yaml", html: "text/html", css: "text/css",
+  java: "text/x-java-source", c: "text/x-c", cpp: "text/x-c++", h: "text/x-c", go: "text/x-go", rs: "text/x-rust",
+};
+
 export default function PortalAssignmentsPage() {
   const [items, setItems] = useState<Assignment[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -41,7 +49,8 @@ export default function PortalAssignmentsPage() {
     try {
       const stored = JSON.parse(localStorage.getItem("user") || "{}");
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const contentType = file.type || "application/octet-stream";
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const contentType = file.type || SCRIPT_CONTENT_TYPES[extension] || "application/octet-stream";
       const path = `assignment-files/${stored.id}/${assignmentId}/${file.lastModified}-${file.size}-${safeName}`;
       const blob = await uploadPresigned(path, file, {
         access: "public", handleUploadUrl: "/api/uploads/assignments", contentType,
@@ -78,7 +87,7 @@ export default function PortalAssignmentsPage() {
           {submitted && <div style={{ background: "#f0fdf8", padding: 12, borderRadius: 10, marginBottom: 14 }}><strong>最近提交：</strong> {dayjs(submitted.submittedAt).format("YYYY-MM-DD HH:mm")}<div style={{ marginTop: 6 }}><Space wrap>{submittedFiles.map(f => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><FileTextOutlined /> {f.name}</a>)}</Space></div></div>}
           {!expired && <>
             <Upload.Dragger multiple showUploadList={false} disabled={activeId === item.id} beforeUpload={(file) => { void upload(item.id, file); return false; }}>
-              <UploadOutlined style={{ fontSize: 30, color: "#25c9a5" }} /><p style={{ margin: 6 }}>点击选择或拖入作业文件</p><p style={{ color: "#8a98aa", fontSize: 12 }}>支持手机视频、文档、表格、图片及其他文件，单文件不超过 200MB，文件数量不限</p>
+              <UploadOutlined style={{ fontSize: 30, color: "#25c9a5" }} /><p style={{ margin: 6 }}>点击选择或拖入作业文件</p><p style={{ color: "#8a98aa", fontSize: 12 }}>支持手机视频、文档、表格、脚本、压缩包及其他文件，单文件不超过 200MB，文件数量不限</p>
             </Upload.Dragger>
             {activeId === item.id && <Progress percent={progress} style={{ marginTop: 8 }} />}
             {!!files[item.id]?.length && <div style={{ marginTop: 12 }}><Space direction="vertical" style={{ width: "100%" }}>{files[item.id].map((f, index) => <div key={f.url} style={{ display: "flex", justifyContent: "space-between", background: "#f8fafc", padding: "8px 12px", borderRadius: 8 }}><span><FileTextOutlined /> {f.name}</span><Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFiles(p => ({ ...p, [item.id]: p[item.id].filter((_, i) => i !== index) }))} /></div>)}</Space></div>}
