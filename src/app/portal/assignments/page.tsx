@@ -27,6 +27,41 @@ export default function PortalAssignmentsPage() {
   const [comments, setComments] = useState<Record<number, string>>({});
   const [progress, setProgress] = useState(0);
 
+  const uploadToLocalServer = async (assignmentId: number, file: File): Promise<WorkFile> => {
+    const chunkSize = 8 * 1024 * 1024;
+    const partCount = Math.ceil(file.size / chunkSize);
+    const initResponse = await fetch("/api/uploads/assignments/local/init", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId, name: file.name, size: file.size, type: file.type || "application/octet-stream", partCount }),
+    });
+    const init = await initResponse.json();
+    if (!init.success) throw new Error(init.message || "初始化上传失败");
+    for (let index = 0; index < partCount; index++) {
+      let uploaded = false;
+      let lastMessage = `第 ${index + 1} 个分片上传失败`;
+      for (let attempt = 1; attempt <= 3 && !uploaded; attempt++) {
+        const response = await fetch(`/api/uploads/assignments/local/${init.data.uploadId}/${index}`, {
+          method: "PUT", headers: { "x-assignment-id": String(assignmentId) },
+          body: file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize)),
+        });
+        if (response.ok) uploaded = true;
+        else {
+          const error = await response.json().catch(() => null);
+          lastMessage = error?.message || lastMessage;
+        }
+      }
+      if (!uploaded) throw new Error(`${lastMessage}，已自动重试 3 次`);
+      setProgress(Math.round(((index + 1) / partCount) * 100));
+    }
+    const completeResponse = await fetch("/api/uploads/assignments/local/complete", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId, uploadId: init.data.uploadId }),
+    });
+    const complete = await completeResponse.json();
+    if (!complete.success) throw new Error(complete.message || "文件合并失败");
+    return complete.data;
+  };
+
   const load = async () => {
     const res = await fetch("/api/assignments"); const data = await res.json();
     if (data.success) setItems(data.data); else message.error(data.message || "获取作业失败");
@@ -47,17 +82,23 @@ export default function PortalAssignmentsPage() {
     if (file.size > 2 * 1024 * 1024 * 1024) { message.error("单个文件不能超过 2GB"); return false; }
     setActiveId(assignmentId); setProgress(0);
     try {
-      const stored = JSON.parse(localStorage.getItem("user") || "{}");
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const extension = file.name.split(".").pop()?.toLowerCase() || "";
-      const contentType = file.type || SCRIPT_CONTENT_TYPES[extension] || "application/octet-stream";
-      const path = `assignment-files/${stored.id}/${assignmentId}/${file.lastModified}-${file.size}-${safeName}`;
-      const blob = await uploadPresigned(path, file, {
-        access: "public", handleUploadUrl: "/api/uploads/assignments", contentType,
-        multipart: file.size >= 20 * 1024 * 1024,
-        onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
-      });
-      setFiles((prev) => ({ ...prev, [assignmentId]: [...(prev[assignmentId] || []), { name: file.name, url: blob.url, type: file.type, size: file.size }] }));
+      let uploaded: WorkFile;
+      if (process.env.NEXT_PUBLIC_STORAGE_MODE === "local") {
+        uploaded = await uploadToLocalServer(assignmentId, file);
+      } else {
+        const stored = JSON.parse(localStorage.getItem("user") || "{}");
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const extension = file.name.split(".").pop()?.toLowerCase() || "";
+        const contentType = file.type || SCRIPT_CONTENT_TYPES[extension] || "application/octet-stream";
+        const path = `assignment-files/${stored.id}/${assignmentId}/${file.lastModified}-${file.size}-${safeName}`;
+        const blob = await uploadPresigned(path, file, {
+          access: "public", handleUploadUrl: "/api/uploads/assignments", contentType,
+          multipart: file.size >= 20 * 1024 * 1024,
+          onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
+        });
+        uploaded = { name: file.name, url: blob.url, type: file.type, size: file.size };
+      }
+      setFiles((prev) => ({ ...prev, [assignmentId]: [...(prev[assignmentId] || []), uploaded] }));
       message.success(`${file.name} 上传成功`);
     } catch (error) { message.error(error instanceof Error ? error.message : "上传失败"); }
     finally { setActiveId(null); setProgress(0); }

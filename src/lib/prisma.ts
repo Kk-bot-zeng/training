@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -7,7 +8,9 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL!;
-  const adapter = new PrismaNeon({ connectionString: url });
+  const adapter = process.env.DATABASE_ADAPTER === "pg"
+    ? new PrismaPg({ connectionString: url })
+    : new PrismaNeon({ connectionString: url });
   return new PrismaClient({ adapter });
 }
 

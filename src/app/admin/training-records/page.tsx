@@ -76,6 +76,33 @@ export default function TrainingRecordsPage() {
     setMaterialUploading(true);
     setMaterialUploadProgress(0);
     try {
+      if (process.env.NEXT_PUBLIC_STORAGE_MODE === "local") {
+        const chunkSize = 8 * 1024 * 1024;
+        const partCount = Math.ceil(file.size / chunkSize);
+        const initResponse = await fetch("/api/uploads/materials/local/init", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name, size: file.size, type: file.type, partCount }),
+        });
+        const init = await initResponse.json();
+        if (!init.success) throw new Error(init.message || "初始化上传失败");
+        for (let index = 0; index < partCount; index++) {
+          const response = await fetch(`/api/uploads/materials/local/${init.data.uploadId}/${index}`, {
+            method: "PUT", body: file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize)),
+          });
+          if (!response.ok) throw new Error(`第 ${index + 1} 个分片上传失败`);
+          setMaterialUploadProgress(Math.round(((index + 1) / partCount) * 100));
+        }
+        const completeResponse = await fetch("/api/uploads/materials/local/complete", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uploadId: init.data.uploadId }),
+        });
+        const complete = await completeResponse.json();
+        if (!complete.success) throw new Error(complete.message || "文件合并失败");
+        const materials = form.getFieldValue("materials") || [];
+        form.setFieldValue("materials", [...materials, { name: file.name, url: complete.data.url, type: extension }]);
+        message.success(`${file.name} 上传成功`);
+        return false;
+      }
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const uploadPath = `training-materials/${Date.now()}-${safeName}`;
       const statusResponse = await fetch("/api/uploads/materials");
