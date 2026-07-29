@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const MAX_SIZE = 200 * 1024 * 1024;
+const MAX_SIZE = 700 * 1024 * 1024;
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser();

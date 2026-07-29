@@ -44,7 +44,7 @@ export default function PortalAssignmentsPage() {
 
   const upload = async (assignmentId: number, file: File) => {
     if (file.size === 0) { message.error("不能上传空文件，请重新选择文件"); return false; }
-    if (file.size > 200 * 1024 * 1024) { message.error("单个文件不能超过 200MB"); return false; }
+    if (file.size > 700 * 1024 * 1024) { message.error("单个文件不能超过 700MB"); return false; }
     setActiveId(assignmentId); setProgress(0);
     try {
       const stored = JSON.parse(localStorage.getItem("user") || "{}");
@@ -87,7 +87,7 @@ export default function PortalAssignmentsPage() {
           {submitted && <div style={{ background: "#f0fdf8", padding: 12, borderRadius: 10, marginBottom: 14 }}><strong>最近提交：</strong> {dayjs(submitted.submittedAt).format("YYYY-MM-DD HH:mm")}<div style={{ marginTop: 6 }}><Space wrap>{submittedFiles.map(f => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><FileTextOutlined /> {f.name}</a>)}</Space></div></div>}
           {!expired && <>
             <Upload.Dragger multiple showUploadList={false} disabled={activeId === item.id} beforeUpload={(file) => { void upload(item.id, file); return false; }}>
-              <UploadOutlined style={{ fontSize: 30, color: "#25c9a5" }} /><p style={{ margin: 6 }}>点击选择或拖入作业文件</p><p style={{ color: "#8a98aa", fontSize: 12 }}>支持手机视频、文档、表格、脚本、压缩包及其他文件，单文件不超过 200MB，文件数量不限</p>
+              <UploadOutlined style={{ fontSize: 30, color: "#25c9a5" }} /><p style={{ margin: 6 }}>点击选择或拖入作业文件</p><p style={{ color: "#8a98aa", fontSize: 12 }}>支持手机视频、文档、表格、脚本、压缩包及其他文件，单文件不超过 700MB，文件数量不限</p>
             </Upload.Dragger>
             {activeId === item.id && <Progress percent={progress} style={{ marginTop: 8 }} />}
             {!!files[item.id]?.length && <div style={{ marginTop: 12 }}><Space direction="vertical" style={{ width: "100%" }}>{files[item.id].map((f, index) => <div key={f.url} style={{ display: "flex", justifyContent: "space-between", background: "#f8fafc", padding: "8px 12px", borderRadius: 8 }}><span><FileTextOutlined /> {f.name}</span><Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFiles(p => ({ ...p, [item.id]: p[item.id].filter((_, i) => i !== index) }))} /></div>)}</Space></div>}
