@@ -26,10 +26,10 @@ const DepartmentRateChart = dynamic(
 );
 
 const statCards = [
-  { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", iconBg: "rgba(102,126,234,0.15)", iconColor: "#667eea", suffix: "人" },
-  { key: "totalTrainingsThisMonth", title: "本月培训", icon: <BookOutlined />, gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", iconBg: "rgba(245,87,108,0.15)", iconColor: "#f5576c", suffix: "场" },
-  { key: "avgAttendanceRate", title: "平均出勤率", icon: <PercentageOutlined />, gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", iconBg: "rgba(79,172,254,0.15)", iconColor: "#4facfe", suffix: "%" },
-  { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", iconBg: "rgba(67,233,123,0.15)", iconColor: "#43e97b", suffix: "个" },
+  { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "#173ec8", iconBg: "#edf2ff", iconColor: "#173ec8", suffix: "人" },
+  { key: "totalTrainingsThisMonth", title: "本月培训", icon: <BookOutlined />, gradient: "#315ce0", iconBg: "#eef3ff", iconColor: "#315ce0", suffix: "场" },
+  { key: "avgAttendanceRate", title: "平均出勤率", icon: <PercentageOutlined />, gradient: "#5477e8", iconBg: "#f0f4ff", iconColor: "#5477e8", suffix: "%" },
+  { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "#7792ed", iconBg: "#f3f6ff", iconColor: "#607fe3", suffix: "个" },
 ];
 
 const trendData = [
@@ -182,7 +182,7 @@ export default function DashboardPage() {
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>⚡ 快捷操作</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button onClick={() => router.push("/admin/trainings/create")}
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "14px 16px", border: "none", borderRadius: 12, background: "linear-gradient(135deg, #667eea, #764ba2)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s" }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "14px 16px", border: "none", borderRadius: 10, background: "#173ec8", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.9"} onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                 <PlusOutlined /> 创建新培训
               </button>

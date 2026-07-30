@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Layout, Menu, Avatar, Dropdown, ConfigProvider, Drawer, Grid, Button } from "antd";
 import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined, FormOutlined, MenuOutlined } from "@ant-design/icons";
@@ -46,12 +47,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     .find(m => pathname === m.key || pathname.startsWith(m.key + "/"))?.key || "/portal";
 
   return (
-    <ConfigProvider theme={{ token: { colorPrimary: "#25c9a5", borderRadius: 12, colorText: "#153247", colorBgLayout: "#edf3f5" }, components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "rgba(52,213,177,0.14)", darkItemSelectedColor: "#42debb", darkItemColor: "#87a5b8", darkItemHoverBg: "rgba(255,255,255,0.05)" } } }}>
+    <ConfigProvider theme={{ token: { colorPrimary: "#173ec8", borderRadius: 10, colorText: "#17213a", colorBgLayout: "#f4f6fb" }, components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "#edf2ff", darkItemSelectedColor: "#173ec8", darkItemColor: "#53617d", darkItemHoverBg: "#f5f7fc" } } }}>
       <Layout className="portal-shell" style={{ minHeight: "100vh" }}>
         {!isMobile && <Sider width={220} className="ocean-sider">
           <div className="ocean-brand" style={{ padding: "0 22px" }}>
-            <div className="ocean-mark">T</div>
-            <div><span className="ocean-brand-name">雷鸟培训</span><small>STUDENT PORTAL</small></div>
+            <Image className="brand-logo" src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={174} height={42} priority />
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
@@ -62,8 +62,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           className="ocean-mobile-drawer">
           <div className="ocean-sider mobile-menu-panel">
             <div className="ocean-brand" style={{ padding: "0 22px" }}>
-              <div className="ocean-mark">T</div>
-              <div><span className="ocean-brand-name">雷鸟培训</span><small>STUDENT PORTAL</small></div>
+              <Image className="brand-logo" src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={174} height={42} />
             </div>
             <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
               onClick={({ key }) => { setMobileMenuOpen(false); router.push(key); }}

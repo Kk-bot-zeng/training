@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Form, Input, Button, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 
@@ -35,40 +36,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="ocean-login" style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "radial-gradient(circle at 15% 15%, rgba(52,213,177,.13), transparent 28%), linear-gradient(135deg, #061624 0%, #0b2940 55%, #103b50 100%)",
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      {/* 背景装饰 */}
-      <div style={{ position: "absolute", top: -120, right: -80, width: 400, height: 400, borderRadius: "50%", background: "rgba(52,213,177,0.06)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: -100, left: -60, width: 300, height: 300, borderRadius: "50%", background: "rgba(35,107,137,0.16)", pointerEvents: "none" }} />
+    <div className="ocean-login">
+      <section className="login-brand-panel">
+        <Image src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={220} height={54} priority />
+        <div className="login-brand-copy">
+          <span>FFALCON LEARNING CENTER</span>
+          <h1>让每一次学习<br />都驱动组织进化</h1>
+          <p>培训 · 考勤 · 考试 · 作业，一体化数字学习管理平台</p>
+        </div>
+        <div className="login-brand-orbit" />
+      </section>
 
-      <div className="ocean-login-card" style={{
-        background: "#fff",
-        borderRadius: 20,
-        padding: "48px 40px",
-        width: 400,
-        maxWidth: "90vw",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
-        position: "relative",
-        zIndex: 1,
-      }}>
+      <div className="ocean-login-card">
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: "linear-gradient(135deg, #51e6c4, #22bd9b)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 24, fontWeight: 800, color: "#073039", margin: "0 auto 16px",
-          }}>
-            T
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1f2937", margin: 0 }}>雷鸟培训系统</h1>
+          <Image className="login-mobile-logo" src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={170} height={42} priority />
+          <h1>欢迎登录</h1>
+          <p className="login-subtitle">雷鸟培训管理系统</p>
         </div>
 
         <Form onFinish={onFinish} size="large" layout="vertical">
@@ -81,18 +65,14 @@ export default function LoginPage() {
               style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" loading={loading}
-              style={{
-                width: "100%", height: 48, borderRadius: 10, fontSize: 15, fontWeight: 600,
-                background: "linear-gradient(135deg, #42debb, #25c9a5)", color: "#062e34", border: "none",
-              }}>
+            <Button type="primary" htmlType="submit" loading={loading} className="login-submit">
               登 录
             </Button>
           </Form.Item>
         </Form>
 
-        <p style={{ textAlign: "center", color: "#d1d5db", fontSize: 12, marginTop: 24 }}>
-          THUNDERBIRD LEARNING HUB
+        <p className="login-footer">
+          FFALCON LEARNING HUB · 2026
         </p>
       </div>
     </div>

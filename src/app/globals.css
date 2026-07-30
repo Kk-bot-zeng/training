@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 :root {
+  --brand-700: #102c9f;
+  --brand-600: #173ec8;
+  --brand-500: #2454e6;
+  --brand-100: #e9efff;
+  --brand-50: #f4f7ff;
   --ocean-950: #061624;
   --ocean-900: #081b2e;
   --ocean-800: #0d3047;
@@ -15,6 +20,49 @@
   --surface: #ffffff;
   --shadow: 0 12px 32px rgba(12, 43, 61, 0.07);
 }
+
+/* FFALCON Professional Light theme */
+.ocean-sider.ant-layout-sider {
+  background: #fff !important;
+  border-right: 1px solid #e7eaf2;
+  box-shadow: 8px 0 32px rgba(26, 42, 83, .035);
+}
+.ocean-brand { height: 76px; border-bottom: 1px solid #eef0f5; padding-inline: 22px !important; }
+.brand-logo { display:block; width: 174px; height: 38px; object-fit: contain; object-position: left center; }
+.brand-symbol { display:block; width: 42px; height: 42px; object-fit: contain; object-position: center; }
+.ocean-sider .ant-menu-item-selected { box-shadow: none; font-weight: 700; }
+.ocean-sider .ant-menu-item-group-title { color:#a2aabc !important; }
+.ocean-workspace { background: #f4f6fb !important; }
+.ocean-topbar { height:68px; flex-basis:68px; padding:0 30px; background:rgba(255,255,255,.94); border-color:#e8ebf2; }
+.ocean-content { height:calc(100vh - 68px); background:#f4f6fb; padding:28px 30px !important; }
+.admin-shell .ant-card,.portal-shell .ant-card { border:1px solid #e8ebf2; border-radius:14px !important; box-shadow:0 6px 24px rgba(27,45,92,.045); }
+.admin-shell .ant-btn-primary,.portal-shell .ant-btn-primary { color:#fff !important; background:var(--brand-600) !important; box-shadow:0 7px 16px rgba(23,62,200,.18); }
+.admin-shell .ant-btn-primary:hover,.portal-shell .ant-btn-primary:hover { background:var(--brand-500) !important; }
+.admin-shell .ant-input:focus,.admin-shell .ant-select-focused .ant-select-selector,.portal-shell .ant-input:focus,.portal-shell .ant-select-focused .ant-select-selector { border-color:var(--brand-500) !important; }
+.admin-shell .ant-table-thead>tr>th,.portal-shell .ant-table-thead>tr>th { background:#f7f8fb !important; color:#65708a !important; }
+.admin-shell .ant-table-tbody>tr:hover>td,.portal-shell .ant-table-tbody>tr:hover>td { background:#f5f8ff !important; }
+.mobile-menu-panel { background:#fff; }
+.ocean-mobile-drawer .ant-drawer-content { background:#fff; }
+
+.ocean-login { min-height:100vh; display:grid; grid-template-columns:minmax(420px,1.08fr) minmax(420px,.92fr); background:#fff; overflow:hidden; }
+.ocean-login::after { display:none; }
+.login-brand-panel { position:relative; overflow:hidden; padding:54px 64px; color:#fff; background:linear-gradient(145deg,#102a9c 0%,#173ec8 48%,#2458ed 100%); }
+.login-brand-panel:before { content:""; position:absolute; inset:0; opacity:.18; background-image:linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px); background-size:64px 64px; mask-image:linear-gradient(135deg,#000,transparent 75%); }
+.login-brand-panel>img { position:relative; width:220px; height:54px; object-fit:contain; filter:brightness(0) invert(1); }
+.login-brand-copy { position:absolute; left:64px; top:50%; transform:translateY(-48%); z-index:2; }
+.login-brand-copy span { font-size:12px; letter-spacing:.24em; opacity:.7; }
+.login-brand-copy h1 { margin:18px 0; font-size:44px; line-height:1.28; letter-spacing:-.04em; }
+.login-brand-copy p { font-size:15px; opacity:.72; }
+.login-brand-orbit { position:absolute; right:-90px; bottom:-120px; width:430px; height:430px; border:1px solid rgba(255,255,255,.25); border-radius:50%; box-shadow:0 0 0 70px rgba(255,255,255,.04),0 0 0 140px rgba(255,255,255,.025); }
+.ocean-login-card { align-self:center; justify-self:center; width:420px; max-width:calc(100vw - 40px); padding:48px 42px; border:0; box-shadow:none !important; }
+.ocean-login-card>div:first-child { text-align:left !important; margin-bottom:34px !important; }
+.login-mobile-logo { display:none; width:170px; height:42px; object-fit:contain; object-position:left; margin-bottom:38px; }
+.ocean-login-card h1 { margin:0; color:#18213a; font-size:29px; letter-spacing:-.03em; }
+.login-subtitle { margin:8px 0 0; color:#8a94a8; font-size:14px; }
+.ocean-login-card .ant-input-affix-wrapper { height:50px; border-radius:10px !important; background:#f8f9fc; border-color:#e2e6ef; }
+.ocean-login-card .ant-input-affix-wrapper-focused { border-color:var(--brand-500); box-shadow:0 0 0 3px rgba(36,84,230,.08); }
+.login-submit { width:100%; height:50px; border-radius:10px; font-size:15px; font-weight:700; background:var(--brand-600) !important; box-shadow:0 10px 24px rgba(23,62,200,.2); }
+.login-footer { margin-top:26px; text-align:center; color:#b0b7c5; font-size:10px; letter-spacing:.1em; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -193,6 +241,10 @@ body {
   .assignment-submit-card .ant-upload-drag { padding: 12px 8px !important; }
   .ocean-content [style*="width: 200px"], .ocean-content [style*="width: 150px"] { width: 100% !important; }
   .ocean-login-card { padding: 36px 24px !important; }
+  .ocean-login { display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#f4f7ff,#fff 38%); }
+  .login-brand-panel { display:none; }
+  .login-mobile-logo { display:block; }
+  .brand-logo { width:160px; }
 }
 
 @media (max-width: 390px) {

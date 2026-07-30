@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider, Drawer, Grid } from "antd";
 import {
@@ -62,22 +63,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isMobile = screens.md === false;
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        const u = JSON.parse(stored);
-        setUsername(u.name);
-        if (u.role !== "admin") router.push("/login");
-        return;
-      } catch {}
-    }
-    fetch("/api/auth/me").then(r => r.json()).then(data => {
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" }).then(r => r.json()).then(data => {
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.data));
         setUsername(data.data.username);
-      } else router.push("/login");
-    }).catch(() => router.push("/login"));
-  }, [router]);
+        if (data.data.role !== "admin") window.location.assign("/portal");
+      } else window.location.assign("/login");
+    }).catch(() => window.location.assign("/login"));
+  }, []);
 
   const handleLogout = async () => {
     try { await fetch("/api/auth/logout", { method: "POST" }); } catch {}
@@ -111,19 +104,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <ConfigProvider theme={{ token: {
-      colorPrimary: "#25c9a5", borderRadius: 12, colorText: "#153247",
-      colorBgLayout: "#edf3f5", colorBorderSecondary: "#e1e9ed",
+      colorPrimary: "#173ec8", borderRadius: 10, colorText: "#17213a",
+      colorBgLayout: "#f4f6fb", colorBorderSecondary: "#e7eaf2",
     }, components: { Menu: {
-      darkItemBg: "transparent", darkItemSelectedBg: "rgba(52,213,177,0.14)",
-      darkItemSelectedColor: "#42debb", darkItemColor: "#87a5b8",
-      darkItemHoverBg: "rgba(255,255,255,0.05)", darkGroupTitleColor: "#52748b",
+      darkItemBg: "transparent", darkItemSelectedBg: "#edf2ff",
+      darkItemSelectedColor: "#173ec8", darkItemColor: "#53617d",
+      darkItemHoverBg: "#f5f7fc", darkGroupTitleColor: "#9aa4b8",
     }}}}>
       <Layout className="admin-shell" style={{ minHeight: "100vh", overflow: "hidden" }}>
         {!isMobile && <Sider trigger={null} collapsible collapsed={collapsed} width={240}
           className="ocean-sider" style={{ borderRight: "none" }}>
           <div className="ocean-brand" style={{ justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 24px" }}>
-            <div className="ocean-mark">T</div>
-            {!collapsed && <div><span className="ocean-brand-name">雷鸟培训</span><small>LEARNING HUB</small></div>}
+            <Image className={collapsed ? "brand-symbol" : "brand-logo"} src={collapsed ? "/ffalcon-logo-stacked.png" : "/ffalcon-logo.png"} alt="FFALCON 雷鸟" width={174} height={42} priority />
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
@@ -140,8 +132,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <div className="ocean-sider mobile-menu-panel">
             <div className="ocean-brand" style={{ padding: "0 22px" }}>
-              <div className="ocean-mark">T</div>
-              <div><span className="ocean-brand-name">雷鸟培训</span><small>LEARNING HUB</small></div>
+              <Image className="brand-logo" src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={174} height={42} />
             </div>
             <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
               onClick={({ key }) => { setMobileMenuOpen(false); router.push(key); }}
