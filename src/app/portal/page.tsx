@@ -4,7 +4,6 @@ import useSWR from "swr";
 import { Row, Col, Card, List, Tag, Spin } from "antd";
 import { useRouter } from "next/navigation";
 import { BookOutlined, EditOutlined, CheckCircleOutlined, TrophyOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { fetcher, swrConfig } from "@/lib/fetcher";
 
 export default function PortalDashboard() {
@@ -14,8 +13,9 @@ export default function PortalDashboard() {
   const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = stored ? JSON.parse(stored) : null;
 
-  const { data: papers } = useSWR("/api/papers?status=published", fetcher, swrConfig);
-  const { data: statsData } = useSWR("/api/statistics/employee", fetcher, swrConfig);
+  const { data: dashboard } = useSWR("/api/portal/dashboard", fetcher, swrConfig);
+  const papers = dashboard?.papers;
+  const statsData = dashboard?.stats;
 
   const exams = (papers || []).filter((paper: Record<string, unknown>) => paper.canAttempt !== false);
   const records = statsData?.records || [];

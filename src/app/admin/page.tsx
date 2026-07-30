@@ -50,10 +50,10 @@ export default function DashboardPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const router = useRouter();
-  const { data: stats } = useSWR<OverviewStats>("/api/statistics/overview", fetcher, swrConfig);
-  const { data: departments } = useSWR<{ name: string; rate: string; total: number }[]>(
-    "/api/statistics/department", fetcher, swrConfig,
+  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[] }>(
+    "/api/statistics/overview", fetcher, swrConfig,
   );
+  const departments = stats?.departments;
   const deptRank = (departments || []).map((department) => ({
     name: department.name,
     rate: parseFloat(department.rate),

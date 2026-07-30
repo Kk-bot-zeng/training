@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
 
@@ -8,7 +9,7 @@ export async function GET() {
 
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const [totalEmployees, activeDepartments, totalTrainingsThisMonth, completedTrainings] = await Promise.all([
+    const [totalEmployees, activeDepartments, totalTrainingsThisMonth, completedTrainings, departmentStats] = await Promise.all([
       prisma.employee.count({ where: { status: "active" } }),
       prisma.department.count(),
       prisma.training.count({ where: { date: { gte: firstOfMonth } } }),
@@ -21,6 +22,14 @@ export async function GET() {
         orderBy: { date: "desc" },
         take: 10,
       }),
+      prisma.$queryRaw<{ name: string; total: number; attended: number }[]>(Prisma.sql`
+        SELECT d."name", COUNT(a."id")::int AS "total",
+          COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
+        FROM "Attendance" a
+        INNER JOIN "Employee" e ON e."id" = a."employeeId"
+        INNER JOIN "Department" d ON d."id" = e."departmentId"
+        GROUP BY d."id", d."name"
+      `),
     ]);
 
     let avgAttendanceRate = 0;
@@ -58,8 +67,17 @@ export async function GET() {
         avgAttendanceRate: Math.round(avgAttendanceRate * 10) / 10,
         activeDepartments,
         recentTrainings,
+        departments: departmentStats
+          .map((department) => ({
+            name: department.name,
+            total: department.total,
+            rate: department.total > 0
+              ? `${((department.attended / department.total) * 100).toFixed(1)}%`
+              : "0.0%",
+          }))
+          .sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate)),
       },
-    });
+    }, { headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=45" } });
   } catch (error) {
     console.error("Overview stats error:", error);
     return NextResponse.json(
