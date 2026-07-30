@@ -24,25 +24,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const screens = Grid.useBreakpoint();
   const isMobile = screens.md === false;
 
+  const handleLogout = async () => {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch {}
+    localStorage.removeItem("user");
+    window.location.assign("/login");
+  };
+
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        const u = JSON.parse(stored);
-        setUser({ name: u.name, role: u.role });
-        if (u.role === "admin") router.push("/admin");
-        return;
-      } catch {}
-    }
-    // Fallback: check API
-    fetch("/api/auth/me").then(r => r.json()).then(data => {
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" }).then(r => r.json()).then(data => {
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.data));
         setUser({ name: data.data.username, role: data.data.role });
-        if (data.data.role === "admin") router.push("/admin");
-      } else router.push("/login");
-    }).catch(() => router.push("/login"));
-  }, [router]);
+        if (data.data.role === "admin") window.location.assign("/admin");
+      } else window.location.assign("/login");
+    }).catch(() => window.location.assign("/login"));
+  }, []);
 
   // Match longest key first so /portal/exams wins over /portal
   const selectedKey = [...menuItems]
@@ -78,7 +74,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <div className="ocean-topbar">
             <Button className="mobile-menu-button" type="text" icon={<MenuOutlined />}
               onClick={() => setMobileMenuOpen(true)} aria-label="打开导航菜单" />
-            <Dropdown menu={{ items: [{ key: "logout", icon: <LogoutOutlined />, label: "退出", danger: true }], onClick: () => { document.cookie = "token=; path=/; max-age=0"; router.push("/login"); } }} placement="bottomRight">
+            <Dropdown menu={{ items: [{ key: "logout", icon: <LogoutOutlined />, label: "退出", danger: true }], onClick: handleLogout }} placement="bottomRight">
               <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
                 <Avatar size={32} icon={<UserOutlined />} style={{ background: "#e8ecf4", color: "#4b5563" }} />
                 <span style={{ fontSize: 14, color: "#374151", fontWeight: 500 }}>{user.name}</span>

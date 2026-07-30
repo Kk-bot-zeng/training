@@ -52,12 +52,19 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true, data: userData });
     const secureSetting = process.env.AUTH_COOKIE_SECURE;
     const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+    const host = forwardedHost || request.headers.get("host") || request.nextUrl.hostname;
     const secureCookie = secureSetting === "true"
-      || (secureSetting !== "false" && (forwardedProto === "https" || request.nextUrl.protocol === "https:"));
+      || (secureSetting !== "false" && (
+        forwardedProto === "https"
+        || request.nextUrl.protocol === "https:"
+        || host.split(":")[0] === "training.kkzlqnb.top"
+      ));
     response.cookies.set("token", token, {
       httpOnly: true, secure: secureCookie,
       sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/",
     });
+    response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
     console.error("Login error:", error);

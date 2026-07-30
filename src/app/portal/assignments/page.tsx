@@ -28,37 +28,60 @@ export default function PortalAssignmentsPage() {
   const [progress, setProgress] = useState(0);
 
   const uploadToLocalServer = async (assignmentId: number, file: File): Promise<WorkFile> => {
-    const chunkSize = 8 * 1024 * 1024;
+    // Smaller chunks are substantially more reliable on mobile networks and stay below proxy limits.
+    const chunkSize = 4 * 1024 * 1024;
     const partCount = Math.ceil(file.size / chunkSize);
+    const fingerprint = `${assignmentId}:${file.name}:${file.size}:${file.lastModified}`;
+    const storageKey = `assignment-upload:${fingerprint}`;
+    const resumeUploadId = localStorage.getItem(storageKey);
     const initResponse = await fetch("/api/uploads/assignments/local/init", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assignmentId, name: file.name, size: file.size, type: file.type || "application/octet-stream", partCount }),
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId, name: file.name, size: file.size, type: file.type || "application/octet-stream", partCount, resumeUploadId }),
     });
     const init = await initResponse.json();
     if (!init.success) throw new Error(init.message || "初始化上传失败");
+    localStorage.setItem(storageKey, init.data.uploadId);
+    const statusResponse = await fetch(`/api/uploads/assignments/local/${init.data.uploadId}/status`, {
+      credentials: "include", headers: { "x-assignment-id": String(assignmentId) },
+    });
+    const status = await statusResponse.json().catch(() => null);
+    const uploadedParts = new Set<number>(status?.success ? status.data.uploadedParts : []);
     for (let index = 0; index < partCount; index++) {
+      if (uploadedParts.has(index)) {
+        setProgress(Math.round(((index + 1) / partCount) * 100));
+        continue;
+      }
       let uploaded = false;
       let lastMessage = `第 ${index + 1} 个分片上传失败`;
-      for (let attempt = 1; attempt <= 3 && !uploaded; attempt++) {
-        const response = await fetch(`/api/uploads/assignments/local/${init.data.uploadId}/${index}`, {
-          method: "PUT", headers: { "x-assignment-id": String(assignmentId) },
-          body: file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize)),
-        });
-        if (response.ok) uploaded = true;
-        else {
-          const error = await response.json().catch(() => null);
-          lastMessage = error?.message || lastMessage;
+      for (let attempt = 1; attempt <= 6 && !uploaded; attempt++) {
+        try {
+          const response = await fetch(`/api/uploads/assignments/local/${init.data.uploadId}/${index}`, {
+            method: "PUT", credentials: "include", headers: { "x-assignment-id": String(assignmentId) },
+            body: file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize)),
+          });
+          if (response.ok) uploaded = true;
+          else {
+            const error = await response.json().catch(() => null);
+            lastMessage = error?.message || lastMessage;
+            if (response.status === 401) throw new Error("登录状态已失效，请重新登录后选择同一文件继续上传");
+          }
+        } catch (error) {
+          lastMessage = error instanceof Error ? error.message : lastMessage;
+        }
+        if (!uploaded && attempt < 6) {
+          await new Promise((resolve) => setTimeout(resolve, Math.min(1000 * 2 ** (attempt - 1), 10000)));
         }
       }
-      if (!uploaded) throw new Error(`${lastMessage}，已自动重试 3 次`);
+      if (!uploaded) throw new Error(`${lastMessage}，进度已保存，请保持页面打开重试或重新选择同一文件续传`);
       setProgress(Math.round(((index + 1) / partCount) * 100));
     }
     const completeResponse = await fetch("/api/uploads/assignments/local/complete", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignmentId, uploadId: init.data.uploadId }),
     });
     const complete = await completeResponse.json();
     if (!complete.success) throw new Error(complete.message || "文件合并失败");
+    localStorage.removeItem(storageKey);
     return complete.data;
   };
 

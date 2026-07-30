@@ -1,32 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Form, Input, Button, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
       const data = await res.json();
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.data));
+        const session = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+        if (!session.ok) {
+          localStorage.removeItem("user");
+          throw new Error("登录状态未保存，请检查浏览器是否允许 Cookie 后重试");
+        }
         message.success("登录成功");
         const nextPath = new URLSearchParams(window.location.search).get("next");
         const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
-        router.push(safeNextPath || (data.data.role === "admin" ? "/admin" : "/portal"));
+        window.location.assign(safeNextPath || (data.data.role === "admin" ? "/admin" : "/portal"));
       }
       else message.error(data.message || "登录失败");
-    } catch { message.error("网络错误"); }
+    } catch (error) { message.error(error instanceof Error ? error.message : "网络错误"); }
     finally { setLoading(false); }
   };
 
