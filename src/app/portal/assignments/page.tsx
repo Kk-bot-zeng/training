@@ -150,7 +150,7 @@ export default function PortalAssignmentsPage() {
           <Typography.Paragraph style={{ whiteSpace: "pre-wrap", color: "#475569" }}>{item.description || "暂无补充说明"}</Typography.Paragraph>
           {submitted && <div style={{ background: "#f0fdf8", padding: 12, borderRadius: 10, marginBottom: 14 }}><strong>最近提交：</strong> {dayjs(submitted.submittedAt).format("YYYY-MM-DD HH:mm")}<div style={{ marginTop: 6 }}><Space wrap>{submittedFiles.map(f => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><FileTextOutlined /> {f.name}</a>)}</Space></div></div>}
           {!expired && <>
-            <Upload.Dragger multiple showUploadList={false} disabled={activeId === item.id} beforeUpload={(file) => { void upload(item.id, file); return false; }}>
+            <Upload.Dragger multiple={false} showUploadList={false} disabled={activeId === item.id} beforeUpload={(file) => { void upload(item.id, file); return false; }}>
               <UploadOutlined style={{ fontSize: 30, color: "#25c9a5" }} /><p style={{ margin: 6 }}>点击选择或拖入作业文件</p><p style={{ color: "#8a98aa", fontSize: 12 }}>支持手机视频、文档、表格、脚本、压缩包及其他文件，单文件不超过 2GB，文件数量不限</p>
             </Upload.Dragger>
             {activeId === item.id && <Progress percent={progress} style={{ marginTop: 8 }} />}
