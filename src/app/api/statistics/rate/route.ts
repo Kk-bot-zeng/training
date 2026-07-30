@@ -25,11 +25,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const total = training.attendance.length;
+    const departmentIds = JSON.parse(training.departmentIds || "[]") as number[];
+    const eligibleEmployees = await prisma.employee.count({
+      where: { departmentId: { in: departmentIds }, status: "active" },
+    });
+    const total = Math.max(eligibleEmployees, training.attendance.length);
     const present = training.attendance.filter((a) => a.status === "present").length;
     const late = training.attendance.filter((a) => a.status === "late").length;
     const leave = training.attendance.filter((a) => a.status === "leave").length;
     const absent = training.attendance.filter((a) => a.status === "absent").length;
+    const pending = Math.max(0, total - present - late - leave - absent);
 
     const presentRate = total > 0 ? ((present + late) / total * 100).toFixed(1) : "0.0";
     const absentRate = total > 0 ? (absent / total * 100).toFixed(1) : "0.0";
@@ -43,6 +48,7 @@ export async function GET(request: NextRequest) {
         late,
         leave,
         absent,
+        pending,
         presentRate: `${presentRate}%`,
         absentRate: `${absentRate}%`,
       },

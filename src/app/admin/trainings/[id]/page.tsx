@@ -21,12 +21,14 @@ import dayjs from "dayjs";
 import type { Department } from "@/types";
 
 const statusColors: Record<string, string> = {
+  pending: "default",
   present: "green",
   late: "orange",
   leave: "blue",
   absent: "red",
 };
 const statusLabels: Record<string, string> = {
+  pending: "待签到",
   present: "出席",
   late: "迟到",
   leave: "请假",
@@ -291,6 +293,9 @@ export default function TrainingDetailPage() {
           </Col>
           <Col xs={12} sm={4}>
             <Card><Statistic title="缺勤" value={summary.absent} valueStyle={{ color: "#ff4d4f" }} /></Card>
+          </Col>
+          <Col xs={12} sm={4}>
+            <Card><Statistic title="待签到" value={summary.pending || 0} valueStyle={{ color: "#8c8c8c" }} /></Card>
           </Col>
           <Col xs={12} sm={4}>
             <Card>

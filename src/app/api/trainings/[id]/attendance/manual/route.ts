@@ -12,7 +12,8 @@ export async function POST(
     const trainingId = parseInt(id);
     const { employeeId, status, remark } = await request.json();
 
-    if (!employeeId || !status) {
+    const allowedStatuses = new Set(["present", "late", "leave", "absent"]);
+    if (!employeeId || !allowedStatuses.has(status)) {
       return NextResponse.json(
         { success: false, message: "员工和状态不能为空" },
         { status: 400 }
@@ -26,14 +27,14 @@ export async function POST(
       update: {
         status,
         remark: remark?.trim() || null,
-        checkInTime: status !== "absent" ? new Date() : null,
+        checkInTime: ["present", "late"].includes(status) ? new Date() : null,
       },
       create: {
         trainingId,
         employeeId,
         status,
         remark: remark?.trim() || null,
-        checkInTime: status !== "absent" ? new Date() : null,
+        checkInTime: ["present", "late"].includes(status) ? new Date() : null,
       },
       include: {
         employee: { include: { department: true } },
