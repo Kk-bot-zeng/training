@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider, Drawer, Grid } from "antd";
+import { Layout, Menu, Button, Avatar, Dropdown, Breadcrumb, ConfigProvider, Drawer } from "antd";
 import {
   DashboardOutlined, ApartmentOutlined, TeamOutlined, BookOutlined,
   CheckCircleOutlined, BarChartOutlined, LogoutOutlined, MenuFoldOutlined,
@@ -59,8 +59,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [username, setUsername] = useState("");
   const router = useRouter();
   const pathname = usePathname();
-  const screens = Grid.useBreakpoint();
-  const isMobile = screens.md === false;
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include", cache: "no-store" }).then(r => r.json()).then(data => {
@@ -112,20 +110,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       darkItemHoverBg: "#f5f7fc", darkGroupTitleColor: "#9aa4b8",
     }}}}>
       <Layout className="admin-shell" style={{ minHeight: "100vh", overflow: "hidden" }}>
-        {!isMobile && <Sider trigger={null} collapsible collapsed={collapsed} width={240}
-          className="ocean-sider" style={{ borderRight: "none" }}>
+        <Sider trigger={null} collapsible collapsed={collapsed} width={240}
+          className="ocean-sider desktop-sider" style={{ borderRight: "none" }}>
           <div className="ocean-brand" style={{ justifyContent: collapsed ? "center" : "flex-start", padding: collapsed ? 0 : "0 24px" }}>
             <Image className={collapsed ? "brand-symbol" : "brand-logo"} src={collapsed ? "/ffalcon-logo-stacked.png" : "/ffalcon-logo.png"} alt="FFALCON 雷鸟" width={174} height={42} priority />
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", borderRight: "none", padding: "8px", fontSize: 14 }} />
-        </Sider>}
+        </Sider>
 
         <Drawer
           placement="left"
           width={280}
-          open={isMobile && mobileMenuOpen}
+          open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
           styles={{ body: { padding: 0 }, header: { display: "none" } }}
           className="ocean-mobile-drawer"
@@ -143,8 +141,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Layout className="ocean-workspace">
           <div className="ocean-topbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <Button type="text" icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => isMobile ? setMobileMenuOpen(true) : setCollapsed(!collapsed)} style={{ fontSize: 16, color: "#4b5563" }} />
+              <Button className="desktop-menu-button" type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)} style={{ fontSize: 16, color: "#4b5563" }} />
+              <Button className="mobile-menu-button" type="text" icon={<MenuOutlined />}
+                onClick={() => setMobileMenuOpen(true)} aria-label="打开导航菜单" />
               <Breadcrumb
                 items={breadcrumbItems as never}
                 style={{ fontSize: 13 }}

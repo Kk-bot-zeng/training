@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Layout, Menu, Avatar, Dropdown, ConfigProvider, Drawer, Grid, Button } from "antd";
+import { Layout, Menu, Avatar, Dropdown, ConfigProvider, Drawer, Button } from "antd";
 import { DashboardOutlined, BookOutlined, CheckCircleOutlined, EditOutlined, BarChartOutlined, LogoutOutlined, UserOutlined, FormOutlined, MenuOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
@@ -22,8 +22,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const screens = Grid.useBreakpoint();
-  const isMobile = screens.md === false;
 
   const handleLogout = async () => {
     try { await fetch("/api/auth/logout", { method: "POST", credentials: "include" }); } catch {}
@@ -49,15 +47,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <ConfigProvider theme={{ token: { colorPrimary: "#173ec8", borderRadius: 10, colorText: "#17213a", colorBgLayout: "#f4f6fb" }, components: { Menu: { darkItemBg: "transparent", darkItemSelectedBg: "#edf2ff", darkItemSelectedColor: "#173ec8", darkItemColor: "#53617d", darkItemHoverBg: "#f5f7fc" } } }}>
       <Layout className="portal-shell" style={{ minHeight: "100vh" }}>
-        {!isMobile && <Sider width={220} className="ocean-sider">
+        <Sider width={220} className="ocean-sider desktop-sider">
           <div className="ocean-brand" style={{ padding: "0 22px" }}>
             <Image className="brand-logo" src="/ffalcon-logo.png" alt="FFALCON 雷鸟" width={174} height={42} priority />
           </div>
           <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={menuItems as never}
             onClick={({ key }) => router.push(key)}
             style={{ background: "transparent", padding: "8px" }} />
-        </Sider>}
-        <Drawer placement="left" width={280} open={isMobile && mobileMenuOpen}
+        </Sider>
+        <Drawer placement="left" width={280} open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)} styles={{ body: { padding: 0 }, header: { display: "none" } }}
           className="ocean-mobile-drawer">
           <div className="ocean-sider mobile-menu-panel">
