@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const deptStats = await prisma.$queryRaw<DepartmentStat[]>(Prisma.sql`
       SELECT d."id", d."name",
-        COUNT(a."id")::int AS "total",
+        COUNT(a."id") FILTER (WHERE a."status" <> 'leave')::int AS "total",
         COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
       FROM "Attendance" a
       INNER JOIN "Employee" e ON e."id" = a."employeeId"
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     `);
 
     const result = deptStats
-      .map((d) => ({ ...d, rate: ((d.attended / d.total) * 100).toFixed(1) + "%" }))
+      .map((d) => ({ ...d, rate: d.total > 0 ? ((d.attended / d.total) * 100).toFixed(1) + "%" : "0.0%" }))
       .sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate));
 
     return NextResponse.json({ success: true, data: result });

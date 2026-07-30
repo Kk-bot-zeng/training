@@ -53,14 +53,17 @@ export async function GET(request: NextRequest) {
     const attended = records.filter((r) =>
       ["present", "late"].includes(r.status)
     ).length;
-    const rate = total > 0 ? ((attended / total) * 100).toFixed(1) + "%" : "N/A";
+    const leave = records.filter((r) => r.status === "leave").length;
+    const absent = records.filter((r) => r.status === "absent").length;
+    const effectiveTotal = total - leave;
+    const rate = effectiveTotal > 0 ? ((attended / effectiveTotal) * 100).toFixed(1) + "%" : "N/A";
 
     return NextResponse.json({
       success: true,
       data: {
         employee: { id: employee.id, name: employee.name, employeeNo: employee.employeeNo, department: employee.department.name },
         records,
-        summary: { total, attended, absent: total - attended, rate },
+        summary: { total, effectiveTotal, attended, leave, absent, rate },
       },
     });
   } catch (error) {

@@ -36,8 +36,9 @@ export async function GET(request: NextRequest) {
     const absent = training.attendance.filter((a) => a.status === "absent").length;
     const pending = Math.max(0, total - present - late - leave - absent);
 
-    const presentRate = total > 0 ? ((present + late) / total * 100).toFixed(1) : "0.0";
-    const absentRate = total > 0 ? (absent / total * 100).toFixed(1) : "0.0";
+    const effectiveTotal = Math.max(0, total - leave);
+    const presentRate = effectiveTotal > 0 ? ((present + late) / effectiveTotal * 100).toFixed(1) : "0.0";
+    const absentRate = effectiveTotal > 0 ? (absent / effectiveTotal * 100).toFixed(1) : "0.0";
 
     return NextResponse.json({
       success: true,
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
         leave,
         absent,
         pending,
+        effectiveTotal,
         presentRate: `${presentRate}%`,
         absentRate: `${absentRate}%`,
       },

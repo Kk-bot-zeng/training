@@ -23,7 +23,7 @@ export async function GET() {
         take: 10,
       }),
       prisma.$queryRaw<{ name: string; total: number; attended: number }[]>(Prisma.sql`
-        SELECT d."name", COUNT(a."id")::int AS "total",
+        SELECT d."name", COUNT(a."id") FILTER (WHERE a."status" <> 'leave')::int AS "total",
           COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
         FROM "Attendance" a
         INNER JOIN "Employee" e ON e."id" = a."employeeId"
@@ -35,7 +35,7 @@ export async function GET() {
     let avgAttendanceRate = 0;
     if (completedTrainings.length > 0) {
       const rates = completedTrainings.map((t) => {
-        const total = t.attendance.length;
+        const total = t.attendance.filter((a) => a.status !== "leave").length;
         if (total === 0) return 100;
         const attended = t.attendance.filter((a) =>
           ["present", "late"].includes(a.status)
@@ -47,7 +47,7 @@ export async function GET() {
     }
 
     const recentTrainings = completedTrainings.slice(0, 5).map((t) => {
-      const total = t.attendance.length;
+      const total = t.attendance.filter((a) => a.status !== "leave").length;
       const attended = t.attendance.filter((a) =>
         ["present", "late"].includes(a.status)
       ).length;

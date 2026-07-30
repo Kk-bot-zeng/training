@@ -59,7 +59,9 @@ export async function GET(request: NextRequest) {
       const totalTrainings = trainings.length;
       const totalAttendance = records.length;
       const attended = records.filter(r => ["present", "late"].includes(r.status)).length;
-      const overallRate = totalAttendance > 0 ? ((attended / totalAttendance) * 100).toFixed(1) : "0.0";
+      const leaveTotal = records.filter(r => r.status === "leave").length;
+      const effectiveAttendance = totalAttendance - leaveTotal;
+      const overallRate = effectiveAttendance > 0 ? ((attended / effectiveAttendance) * 100).toFixed(1) : "0.0";
 
       s1.mergeCells("A1:D1");
       const titleCell = s1.getCell("A1");
@@ -92,7 +94,9 @@ export async function GET(request: NextRequest) {
         const dRecords = records.filter(r => r.employee.departmentId === d.id);
         const dTotal = dRecords.length;
         const dAttended = dRecords.filter(r => ["present", "late"].includes(r.status)).length;
-        const dRate = dTotal > 0 ? ((dAttended / dTotal) * 100).toFixed(1) + "%" : "0.0%";
+        const dLeave = dRecords.filter(r => r.status === "leave").length;
+        const dEffectiveTotal = dTotal - dLeave;
+        const dRate = dEffectiveTotal > 0 ? ((dAttended / dEffectiveTotal) * 100).toFixed(1) + "%" : "0.0%";
         s1.addRow([d.name, dTotal, dAttended, dRate]);
       }
 
@@ -112,7 +116,8 @@ export async function GET(request: NextRequest) {
         const lat = a.filter(r => r.status === "late").length;
         const lea = a.filter(r => r.status === "leave").length;
         const abs = a.filter(r => r.status === "absent").length;
-        const rate = a.length > 0 ? ((pres + lat) / a.length * 100).toFixed(1) + "%" : "0.0%";
+        const effectiveTotal = a.length - lea;
+        const rate = effectiveTotal > 0 ? ((pres + lat) / effectiveTotal * 100).toFixed(1) + "%" : "0.0%";
         const row = s2.addRow([t.title, dayjs(t.date).format("YYYY-MM-DD"), typeMap[t.type], a.length, pres, lat, lea, abs, rate]);
         styleRow(row, rowIdx % 2 === 0);
         rowIdx++;
@@ -136,7 +141,9 @@ export async function GET(request: NextRequest) {
         const att = empRecords.filter(r => ["present", "late"].includes(r.status)).length;
         const lat = empRecords.filter(r => r.status === "late").length;
         const abs = empRecords.filter(r => r.status === "absent").length;
-        const rate = total > 0 ? ((att / total) * 100).toFixed(1) + "%" : "N/A";
+        const leave = empRecords.filter(r => r.status === "leave").length;
+        const effectiveTotal = total - leave;
+        const rate = effectiveTotal > 0 ? ((att / effectiveTotal) * 100).toFixed(1) + "%" : "N/A";
         const row = s3.addRow([emp.name, emp.employeeNo, emp.department.name, att, lat, abs, total, rate]);
         styleRow(row, rowIdx % 2 === 0);
         rowIdx++;

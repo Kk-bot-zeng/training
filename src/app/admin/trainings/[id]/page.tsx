@@ -301,7 +301,7 @@ export default function TrainingDetailPage() {
             <Card>
               <Statistic
                 title="出勤率"
-                value={summary.total > 0 ? ((summary.present + summary.late) / summary.total * 100).toFixed(1) : 0}
+                value={summary.total - summary.leave > 0 ? ((summary.present + summary.late) / (summary.total - summary.leave) * 100).toFixed(1) : 0}
                 suffix="%"
                 valueStyle={{ color: "#722ed1" }}
               />

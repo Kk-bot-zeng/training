@@ -45,6 +45,9 @@ export async function GET() {
 
     const attended = records.filter((record) => ["present", "late"].includes(record.status)).length;
     const total = records.length;
+    const leave = records.filter((record) => record.status === "leave").length;
+    const absent = records.filter((record) => record.status === "absent").length;
+    const effectiveTotal = total - leave;
     const publishedPapers = papers.map(({ attempts, ...paper }) => {
       const completedAttempts = attempts.filter((attempt) => attempt.status === "submitted").length;
       return {
@@ -69,8 +72,10 @@ export async function GET() {
           summary: {
             total,
             attended,
-            absent: total - attended,
-            rate: total > 0 ? `${((attended / total) * 100).toFixed(1)}%` : "N/A",
+            effectiveTotal,
+            leave,
+            absent,
+            rate: effectiveTotal > 0 ? `${((attended / effectiveTotal) * 100).toFixed(1)}%` : "N/A",
           },
         },
       },
