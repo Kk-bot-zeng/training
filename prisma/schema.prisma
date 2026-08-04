@@ -155,6 +155,7 @@ model AssignmentSubmission {
 model ExamQuestion {
   id             Int                 @id @default(autoincrement())
   type           String // single/multi/judge/essay
+  productModel   String              @default("通用") // 产品型号
   category       String              @default("通用") // 分类标签
   difficulty     String              @default("medium") // easy/medium/hard
   content        String // 题目内容
@@ -164,6 +165,8 @@ model ExamQuestion {
   analysis       String? // 答案解析
   createdAt      DateTime            @default(now())
   paperQuestions ExamPaperQuestion[]
+
+  @@index([productModel, category])
 }
 
 model ExamPaper {

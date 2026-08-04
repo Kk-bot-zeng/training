@@ -76,6 +76,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "试卷不可用" }, { status: 400 });
     }
 
+    const now = Date.now();
+    if (paper.startTime && paper.startTime.getTime() > now) {
+      return NextResponse.json({ success: false, message: "考试尚未开始" }, { status: 403 });
+    }
+    if (paper.endTime && paper.endTime.getTime() < now) {
+      return NextResponse.json({ success: false, message: "考试已经结束" }, { status: 403 });
+    }
+
     // Check if already attempted
     const existing = await prisma.examAttempt.findFirst({
       where: { paperId, employeeId: user.id, status: { not: "submitted" } },

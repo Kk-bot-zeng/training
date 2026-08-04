@@ -1,10 +1,10 @@
 "use client";
 
+/* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps, react-hooks/preserve-manual-memoization */
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Alert, Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, message, Spin } from "antd";
-import { ClockCircleOutlined, CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { ClockCircleOutlined, WarningOutlined } from "@ant-design/icons";
 
 const typeLabels: Record<string, string> = { single: "单选题", multi: "多选题", judge: "判断题", essay: "问答题" };
 
@@ -29,15 +29,16 @@ export default function ExamTakingPage() {
       try {
         const paperRes = await fetch(`/api/papers/${paperId}`);
         const paperData = await paperRes.json();
-        if (!paperData.success) { message.error("试卷不存在"); router.push("/portal/exams"); return; }
+        if (!paperData.success) { message.error(paperData.message || "试卷当前不可用"); router.push("/portal/exams"); return; }
         setPaper(paperData.data);
-        setTimeLeft(paperData.data.duration * 60);
 
         // Start or resume attempt
         const attRes = await fetch("/api/attempts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: parseInt(paperId) }) });
         const attData = await attRes.json();
         if (attData.success) {
           setAttempt(attData.data);
+          const elapsed = Math.max(0, Math.floor((Date.now() - new Date(attData.data.startTime).getTime()) / 1000));
+          setTimeLeft(Math.max(1, paperData.data.duration * 60 - elapsed));
           if (attData.data.answers) {
             try {
               const prev = JSON.parse(attData.data.answers as string);
@@ -124,7 +125,7 @@ export default function ExamTakingPage() {
   return (
     <div style={{ width: "100%", margin: "0 auto" }}>
       {/* Header Bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderRadius: 12, padding: "12px 20px", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div className="exam-taking-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", borderRadius: 12, padding: "12px 20px", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <span style={{ fontWeight: 600, fontSize: 15 }}>{paper.title as string}</span>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: timeLeft < 300 ? "#ef4444" : "#374151" }}>
@@ -141,7 +142,7 @@ export default function ExamTakingPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 16 }}>
+      <div className="exam-taking-layout" style={{ display: "flex", gap: 16 }}>
         {/* Question Area */}
         <div style={{ flex: 1 }}>
           {q ? (
@@ -191,7 +192,7 @@ export default function ExamTakingPage() {
         </div>
 
         {/* Answer Card Sidebar */}
-        <div style={{ width: 220, flexShrink: 0 }}>
+        <div className="exam-answer-sidebar" style={{ width: 220, flexShrink: 0 }}>
           <Card size="small" title="答题卡" style={{ borderRadius: 12, position: "sticky", top: 80 }}>
             <Progress percent={Math.round((answeredCount / questions.length) * 100)} size="small" style={{ marginBottom: 12 }} />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>

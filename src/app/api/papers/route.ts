@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
     const status = request.nextUrl.searchParams.get("status");
     if (status === "published") {
-      const user = await getAuthUser();
       if (user.role === "employee") {
         const papers = await prisma.examPaper.findMany({
           where: { status: "published" },
@@ -23,15 +23,19 @@ export async function GET(request: NextRequest) {
           success: true,
           data: papers.map(({ attempts, ...paper }) => {
             const completedAttempts = attempts.filter((attempt) => attempt.status === "submitted").length;
+            const now = Date.now();
+            const withinWindow = (!paper.startTime || paper.startTime.getTime() <= now) && (!paper.endTime || paper.endTime.getTime() >= now);
             return {
               ...paper,
               completedAttempts,
-              canAttempt: paper.allowRetake || completedAttempts === 0,
+              canAttempt: withinWindow && (paper.allowRetake || completedAttempts === 0),
+              availability: !withinWindow ? (paper.startTime && paper.startTime.getTime() > now ? "not_started" : "ended") : "available",
             };
           }),
         });
       }
     }
+    if (user.role !== "admin") return NextResponse.json({ success: false, message: "无权访问" }, { status: 403 });
     const papers = await prisma.examPaper.findMany({
       where: status ? { status } : undefined,
       include: { _count: { select: { paperQuestions: true, attempts: true } } },
@@ -43,6 +47,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    await getAuthAdmin();
     const body = await request.json();
     const { title, description, type, duration, passScore, totalScore, startTime, endTime,
       shuffleQuestions, shuffleOptions, maxSwitch, allowRetake, retakeCount, questions } = body;

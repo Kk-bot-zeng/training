@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const body = await request.json();
     const normalizedOptions = Array.isArray(body.options)
@@ -18,6 +20,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const data: Record<string, unknown> = {};
     if (body.type) data.type = body.type;
+    if (typeof body.productModel === "string" && body.productModel.trim()) data.productModel = body.productModel.trim();
     if (body.category) data.category = body.category;
     if (body.difficulty) data.difficulty = body.difficulty;
     if (body.content) data.content = body.content;
@@ -32,6 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     await prisma.examQuestion.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ success: true, message: "删除成功" });

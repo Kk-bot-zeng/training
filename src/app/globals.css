@@ -217,12 +217,32 @@ body {
 
 @keyframes ocean-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+.page-toolbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-toolbar h1 { margin: 0; color: #17213a; font-size: 24px; }
+.page-toolbar p { margin: 4px 0 0; color: #7b879c; }
+.table-card { overflow: hidden; background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.batch-action-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 14px; color: #173ec8; background: #eef3ff; border: 1px solid #ccd9ff; border-radius: 12px; font-weight: 600; }
+.exam-qr-content { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.exam-qr-content h3 { margin: 0 0 14px; color: #17213a; }
+.exam-qr-content p { color: #64748b; line-height: 1.7; }
+.exam-qr-frame { display: flex; padding: 12px; background: #fff; border: 1px solid #dbe4f3; border-radius: 16px; box-shadow: 0 8px 24px rgba(23,62,200,.1); }
+
 @media (max-width: 767px) {
   html, body { overflow-x: hidden; }
   .ocean-content { height: calc(100dvh - 56px); padding: 14px !important; }
   .ocean-topbar { height: 56px; flex-basis: 56px; padding: 0 10px; }
   .mobile-menu-button { display: inline-flex; font-size: 18px; }
   .desktop-menu-button, .desktop-sider { display: none !important; }
+  .page-toolbar { flex-direction: column; }
+  .page-toolbar > .ant-space { width: 100%; }
+  .page-toolbar .ant-input-search, .page-toolbar .ant-select { width: 100% !important; }
+  .batch-action-bar { align-items: flex-start; flex-direction: column; }
+  .exam-taking-layout { flex-direction: column; }
+  .exam-answer-sidebar { width: 100% !important; order: -1; }
+  .exam-answer-sidebar .ant-card { position: static !important; }
+  .exam-taking-header { align-items: flex-start !important; gap: 10px; padding: 10px 12px !important; }
+  .exam-taking-header > span { max-width: 42%; line-height: 1.35; }
+  .exam-taking-header > div { gap: 8px !important; }
   .admin-shell .ant-breadcrumb { display: none; }
   .ocean-topbar .ant-avatar + span { display: none; }
   .ocean-content h1 { font-size: 21px !important; }

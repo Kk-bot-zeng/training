@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await getAuthUser();
     const { id } = await params;
     const paper = await prisma.examPaper.findUnique({
       where: { id: parseInt(id) },
@@ -12,12 +14,33 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
     if (!paper) return NextResponse.json({ success: false, message: "试卷不存在" }, { status: 404 });
+    if (user.role === "employee") {
+      const now = Date.now();
+      if (paper.status !== "published") return NextResponse.json({ success: false, message: "该试卷尚未发布或已关闭" }, { status: 403 });
+      if (paper.startTime && paper.startTime.getTime() > now) return NextResponse.json({ success: false, message: "考试尚未开始" }, { status: 403 });
+      if (paper.endTime && paper.endTime.getTime() < now) return NextResponse.json({ success: false, message: "考试已经结束" }, { status: 403 });
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...paper,
+          paperQuestions: paper.paperQuestions.map(({ question, ...paperQuestion }) => ({
+            ...paperQuestion,
+            question: {
+              id: question.id, type: question.type, content: question.content,
+              options: question.options, score: question.score,
+              productModel: question.productModel, category: question.category, difficulty: question.difficulty,
+            },
+          })),
+        },
+      });
+    }
     return NextResponse.json({ success: true, data: paper });
   } catch (e) { console.error(e); return NextResponse.json({ success: false, message: "获取失败" }, { status: 500 }); }
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const paperId = parseInt(id);
     const body = await request.json();
@@ -75,6 +98,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await getAuthAdmin();
     const { id } = await params;
     const paperId = parseInt(id);
     await prisma.$transaction([

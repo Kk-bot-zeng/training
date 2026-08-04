@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Table, Button, Drawer, Form, Input, Select, Switch, InputNumber, DatePicker, Space, Tag, message, Popconfirm, Card, Row, Col, Modal, Statistic } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined, BarChartOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined, BarChartOutlined, QrcodeOutlined, CopyOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { QRCodeSVG } from "qrcode.react";
 
 const typeLabels: Record<string, string> = { timed: "定时考试", practice: "模拟练习" };
 
@@ -53,6 +54,8 @@ export default function ExamPapersPage() {
   const [selectedAttempt, setSelectedAttempt] = useState<ResultAttempt | null>(null);
   const [gradeScores, setGradeScores] = useState<Record<number, number>>({});
   const [grading, setGrading] = useState(false);
+  const [qrPaper, setQrPaper] = useState<Record<string, unknown> | null>(null);
+  const [questionModelFilter, setQuestionModelFilter] = useState<string>();
   const [form] = Form.useForm();
   const selectedQuestionIds: number[] = Form.useWatch("questionIds", form) || [];
 
@@ -65,10 +68,11 @@ export default function ExamPapersPage() {
   };
 
   useEffect(() => {
-    fetchPapers();
+    const timer = window.setTimeout(() => { void fetchPapers(); }, 0);
     fetch("/api/questions?pageSize=500")
       .then((res) => res.json())
       .then((data) => { if (data.success) setQuestions(data.data.items); });
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleSubmit = async () => {
@@ -172,11 +176,12 @@ export default function ExamPapersPage() {
     { title: "及格分", dataIndex: "passScore", key: "passScore", width: 90 },
     { title: "总题数", key: "qCount", width: 90, render: (_: unknown, r: Record<string, unknown>) => (r._count as { paperQuestions: number })?.paperQuestions || 0 },
     { title: "状态", dataIndex: "status", key: "status", width: 100, render: (s: string) => <Tag color={s === "published" ? "green" : s === "draft" ? "default" : "red"}>{s === "published" ? "已发布" : s === "draft" ? "草稿" : "已关闭"}</Tag> },
-    { title: "操作", key: "actions", width: 300, fixed: "right" as const, render: (_: unknown, r: Record<string, unknown>) => (
+    { title: "操作", key: "actions", width: 360, fixed: "right" as const, render: (_: unknown, r: Record<string, unknown>) => (
         <Space size={0} wrap>
           <Button type="link" size="small" onClick={() => handleResults(r)}><BarChartOutlined /> 成绩</Button>
           <Button type="link" size="small" onClick={() => handleEdit(r)}><EditOutlined /> 编辑</Button>
           {r.status === "draft" && <Button type="link" size="small" onClick={() => handlePublish(r.id as number)}><SendOutlined /> 发布</Button>}
+          {r.status === "published" && <Button type="link" size="small" onClick={() => setQrPaper(r)}><QrcodeOutlined /> 考试二维码</Button>}
           <Popconfirm title="确定删除？该试卷的考试记录也会删除。" onConfirm={() => handleDelete(r.id as number)}>
             <Button type="link" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -197,7 +202,7 @@ export default function ExamPapersPage() {
 
       <div style={{ background: "#fff", borderRadius: 16, padding: "4px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <Table dataSource={papers} columns={columns} rowKey="id" loading={loading}
-          pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" scroll={{ x: 1020 }} />
+          pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" scroll={{ x: 1120 }} />
       </div>
 
       <Drawer title={editingPaper ? "编辑试卷" : "创建试卷"} open={drawerOpen} width={560}
@@ -218,12 +223,16 @@ export default function ExamPapersPage() {
             <Col span={12}><Form.Item name="startTime" label="开始时间"><DatePicker showTime style={{ width: "100%" }} /></Form.Item></Col>
             <Col span={12}><Form.Item name="endTime" label="结束时间"><DatePicker showTime style={{ width: "100%" }} /></Form.Item></Col>
           </Row>
+          <Form.Item label="按型号筛选题库">
+            <Select allowClear showSearch placeholder="全部型号" value={questionModelFilter} onChange={setQuestionModelFilter}
+              options={[...new Set(questions.map((question) => String(question.productModel || "通用")))].map((value) => ({ value, label: value }))} />
+          </Form.Item>
           <Form.Item name="questionIds" label="选择题目" rules={[{ required: true, message: "请至少选择一道题目" }]}
             help={`已选择题目的分值合计：${selectedQuestionIds.reduce((sum, id) => sum + (Number(questions.find((q) => q.id === id)?.score) || 2), 0)} 分`}>
             <Select mode="multiple" showSearch optionFilterProp="label" placeholder="从题库中选择题目"
-              options={questions.map((question) => ({
+              options={questions.filter((question) => !questionModelFilter || question.productModel === questionModelFilter).map((question) => ({
                 value: question.id as number,
-                label: `[${question.category}] ${question.content}（${question.score}分）`,
+                label: `[${question.productModel || "通用"} / ${question.category}] ${question.content}（${question.score}分）`,
               }))} />
           </Form.Item>
           <Card size="small" title="考试设置" style={{ marginBottom: 16 }}>
@@ -236,6 +245,20 @@ export default function ExamPapersPage() {
           </Card>
         </Form>
       </Drawer>
+
+      <Modal title="考试二维码" open={Boolean(qrPaper)} onCancel={() => setQrPaper(null)} footer={null} width={420} centered>
+        {qrPaper && (() => {
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== "undefined" ? window.location.origin : "");
+          const examUrl = `${baseUrl}/portal/exams/${qrPaper.id}`;
+          return <div className="exam-qr-content">
+            <h3>{qrPaper.title as string}</h3>
+            <div className="exam-qr-frame"><QRCodeSVG value={examUrl} size={220} level="H" marginSize={2} /></div>
+            <p>手机扫码或电脑打开链接。未登录时会先进入登录页，登录成功后自动进入本场考试。</p>
+            <Input value={examUrl} readOnly addonAfter={<Button type="text" size="small" icon={<CopyOutlined />} onClick={async () => { await navigator.clipboard.writeText(examUrl); message.success("考试链接已复制"); }} />} />
+            <Tag color="green" style={{ marginTop: 14 }}>仅已发布且在有效时间内的试卷可以开始作答</Tag>
+          </div>;
+        })()}
+      </Modal>
 
       <Drawer title={resultsData ? `${resultsData.paper.title} · 成绩分析` : "成绩分析"}
         open={resultsOpen} width="88vw" loading={resultsLoading}

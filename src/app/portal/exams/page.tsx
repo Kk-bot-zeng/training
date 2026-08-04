@@ -41,7 +41,7 @@ export default function ExamListPage() {
                 {(e.startTime as string) && <div>🕐 {dayjs(e.startTime as string).format("MM/DD HH:mm")}</div>}
               </div>
               <Button type="primary" block disabled={!canAttempt} style={{ marginTop: 12, borderRadius: 10 }}>
-                {canAttempt ? ((e.completedAttempts as number) > 0 ? "再次练习" : "开始考试") : "已完成，不可重复考试"}
+                {canAttempt ? ((e.completedAttempts as number) > 0 ? "再次练习" : "开始考试") : e.availability === "not_started" ? "考试尚未开始" : e.availability === "ended" ? "考试已结束" : "已完成，不可重复考试"}
               </Button>
             </Card>
           </List.Item>
