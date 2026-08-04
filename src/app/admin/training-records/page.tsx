@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Table, Button, Drawer, Form, Input, Select, DatePicker, InputNumber, Space, Tag, message, Popconfirm, Radio, Upload, Descriptions } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, ImportOutlined, EyeOutlined, LinkOutlined, PlayCircleOutlined, FileTextOutlined, UploadOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, ImportOutlined, EyeOutlined, LinkOutlined, PlayCircleOutlined, FileTextOutlined, UploadOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { uploadPresigned } from "@vercel/blob/client";
 
@@ -28,7 +28,7 @@ export default function TrainingRecordsPage() {
   const [importResult, setImportResult] = useState<{ total?: number; created?: number; errors?: string[] } | null>(null);
   const [form] = Form.useForm();
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -39,9 +39,12 @@ export default function TrainingRecordsPage() {
       const data = await res.json();
       if (data.success) setRecords(data.data.items);
     } finally { setLoading(false); }
-  };
+  }, [formatFilter, search, statusFilter]);
 
-  useEffect(() => { fetchRecords(); }, [search, statusFilter, formatFilter]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void fetchRecords(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchRecords]);
 
   const handleSubmit = async () => {
     try {
@@ -342,9 +345,12 @@ export default function TrainingRecordsPage() {
 
       {/* Import Modal */}
       <Drawer title="批量导入培训档案" open={importModalOpen} width={480} onClose={() => { setImportModalOpen(false); setImportResult(null); }}>
-        <p style={{ color: "#6b7280", marginBottom: 16, fontSize: 13 }}>
-          Excel 表头：<strong>培训主题、培训对象、培训时间、需求发起人、培训形式、参训人数、讲师、需求描述、需求状态、课件、培训录屏</strong>
+        <p style={{ color: "#6b7280", marginBottom: 10, fontSize: 13 }}>
+          请先下载最新版模板并按示例填写。必填项：<strong>培训主题、培训对象、培训时间、需求发起人</strong>。
         </p>
+        <Button type="primary" ghost icon={<DownloadOutlined />} href="/templates/培训档案批量导入模板.xlsx" download style={{ marginBottom: 16 }}>
+          下载培训档案导入模板
+        </Button>
         <Upload.Dragger accept=".xlsx,.xls" maxCount={1} beforeUpload={(file) => { handleImport(file); return false; }} showUploadList={false}>
           <UploadOutlined style={{ fontSize: 40, color: "#1677ff" }} />
           <p style={{ marginTop: 8 }}>点击或拖拽 Excel 文件上传</p>
