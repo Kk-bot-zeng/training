@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     await getAuthAdmin();
     const body = await request.json();
     const { title, description, type, duration, passScore, totalScore, startTime, endTime,
-      shuffleQuestions, shuffleOptions, maxSwitch, allowRetake, retakeCount, questions } = body;
+      shuffleQuestions, shuffleOptions, allowRetake, retakeCount, questions } = body;
 
     if (!title) return NextResponse.json({ success: false, message: "试卷标题不能为空" }, { status: 400 });
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         duration: duration || 60, passScore: passScore || 60, totalScore: totalScore || 100,
         startTime: startTime ? new Date(startTime) : null, endTime: endTime ? new Date(endTime) : null,
         shuffleQuestions: shuffleQuestions ?? true, shuffleOptions: shuffleOptions ?? true,
-        maxSwitch: maxSwitch ?? 3, allowRetake: allowRetake ?? false, retakeCount: retakeCount ?? 1,
+        maxSwitch: 3, allowRetake: allowRetake ?? false, retakeCount: retakeCount ?? 1,
         status: body.status || "draft",
       },
     });

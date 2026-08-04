@@ -45,8 +45,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const paperId = parseInt(id);
     const body = await request.json();
     const data: Record<string, unknown> = {};
-    const fields = ["title","description","type","duration","passScore","totalScore","status","shuffleQuestions","shuffleOptions","maxSwitch","allowRetake","retakeCount"];
+    const fields = ["title","description","type","duration","passScore","totalScore","status","shuffleQuestions","shuffleOptions","allowRetake","retakeCount"];
     for (const f of fields) if (body[f] !== undefined) data[f] = body[f];
+    data.maxSwitch = 3;
     if (body.startTime) data.startTime = new Date(body.startTime);
     if (body.endTime) data.endTime = new Date(body.endTime);
 

@@ -1,12 +1,13 @@
 "use client";
 
-/* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps, react-hooks/preserve-manual-memoization */
+/* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps */
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Alert, Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, message, Spin } from "antd";
 import { ClockCircleOutlined, WarningOutlined } from "@ant-design/icons";
 
 const typeLabels: Record<string, string> = { single: "单选题", multi: "多选题", judge: "判断题", essay: "问答题" };
+const MAX_SCREEN_SWITCHES = 3;
 
 export default function ExamTakingPage() {
   const params = useParams();
@@ -22,6 +23,7 @@ export default function ExamTakingPage() {
   const [switchCount, setSwitchCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const submittingRef = useRef(false);
 
   // Load paper and start attempt
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function ExamTakingPage() {
         const attData = await attRes.json();
         if (attData.success) {
           setAttempt(attData.data);
+          setSwitchCount(Number(attData.data.screenSwitches) || 0);
           const elapsed = Math.max(0, Math.floor((Date.now() - new Date(attData.data.startTime).getTime()) / 1000));
           setTimeLeft(Math.max(1, paperData.data.duration * 60 - elapsed));
           if (attData.data.answers) {
@@ -69,28 +72,9 @@ export default function ExamTakingPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timeLeft > 0]);
 
-  // Screen switch detection
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden) {
-        setSwitchCount(prev => {
-          const next = prev + 1;
-          if (paper && next >= (paper.maxSwitch as number)) {
-            message.error("切屏次数已达上限，自动交卷");
-            handleSubmit(true);
-          } else if (paper && next >= (paper.maxSwitch as number) - 1) {
-            setShowWarning(true);
-          }
-          return next;
-        });
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [paper]);
-
-  const handleSubmit = useCallback(async (auto = false) => {
-    if (submitting) return;
+  const handleSubmit = useCallback(async (auto = false, recordedSwitches?: number) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     if (timerRef.current) clearInterval(timerRef.current);
     try {
@@ -100,15 +84,53 @@ export default function ExamTakingPage() {
       })) : [];
       const res = await fetch("/api/attempts", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attemptId: attempt?.id, answers: answerArr, screenSwitches: switchCount }),
+        body: JSON.stringify({ attemptId: attempt?.id, answers: answerArr, screenSwitches: recordedSwitches ?? switchCount }),
       });
       const data = await res.json();
       if (data.success) {
         message.success(auto ? "⏰ 时间到，已自动交卷" : "交卷成功！");
         router.push("/portal/scores");
-      } else message.error(data.message);
-    } catch { message.error("提交失败"); } finally { setSubmitting(false); }
+      } else { submittingRef.current = false; message.error(data.message); }
+    } catch { submittingRef.current = false; message.error("提交失败"); } finally { setSubmitting(false); }
   }, [submitting, answers, attempt, paper, switchCount, router]);
+
+  // Both desktop window blur and mobile app/background switching count as leaving the exam.
+  // The debounce prevents one physical switch from being counted twice by blur + visibilitychange.
+  useEffect(() => {
+    if (!attempt?.id || submittingRef.current) return;
+    let lastRecordedAt = 0;
+    let recording = false;
+    const recordSwitch = async () => {
+      const now = Date.now();
+      if (recording || submittingRef.current || now - lastRecordedAt < 800) return;
+      lastRecordedAt = now;
+      recording = true;
+      try {
+        const response = await fetch("/api/attempts", {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ attemptId: attempt.id }),
+          keepalive: true,
+        });
+        const data = await response.json();
+        if (!data.success) return;
+        const count = Number(data.data.screenSwitches) || 0;
+        setSwitchCount(count);
+        setShowWarning(count > 0 && count < MAX_SCREEN_SWITCHES);
+        if (count >= MAX_SCREEN_SWITCHES) {
+          message.error(`切屏已达 ${MAX_SCREEN_SWITCHES} 次，系统正在自动交卷`);
+          await handleSubmit(true, count);
+        }
+      } finally { recording = false; }
+    };
+    const handleVisibility = () => { if (document.hidden) void recordSwitch(); };
+    const handleBlur = () => { if (!document.hidden) void recordSwitch(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [attempt?.id, handleSubmit]);
 
   if (loading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
   if (!paper) return null;
@@ -138,7 +160,7 @@ export default function ExamTakingPage() {
 
       {showWarning && (
         <div style={{ background: "#fef3c7", padding: "8px 16px", borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-          <WarningOutlined style={{ color: "#d97706" }} /> 你已切换屏幕 {switchCount} 次，再切换 {paper.maxSwitch as number - switchCount} 次将自动交卷
+          <WarningOutlined style={{ color: "#d97706" }} /> 你已切屏 {switchCount} 次，再切屏 {MAX_SCREEN_SWITCHES - switchCount} 次将自动交卷
         </div>
       )}
 

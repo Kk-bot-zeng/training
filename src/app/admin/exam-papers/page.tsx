@@ -208,7 +208,7 @@ export default function ExamPapersPage() {
       <Drawer title={editingPaper ? "编辑试卷" : "创建试卷"} open={drawerOpen} width={560}
         onClose={() => { setDrawerOpen(false); form.resetFields(); setEditingPaper(null); }}
         extra={<Button type="primary" loading={submitting} onClick={handleSubmit} style={{ borderRadius: 10 }}>保存</Button>}>
-        <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "timed", duration: 60, passScore: 60, totalScore: 100, shuffleQuestions: true, shuffleOptions: true, maxSwitch: 3, allowRetake: false }}>
+        <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "timed", duration: 60, passScore: 60, totalScore: 100, shuffleQuestions: true, shuffleOptions: true, allowRetake: false }}>
           <Form.Item name="title" label="试卷标题" rules={[{ required: true }]}><Input placeholder="如：2026年Q3产品知识考核" /></Form.Item>
           <Form.Item name="description" label="考试说明"><Input.TextArea rows={2} /></Form.Item>
           <Row gutter={16}>
@@ -241,7 +241,7 @@ export default function ExamPapersPage() {
               <Col span={8}><Form.Item name="shuffleOptions" label="选项乱序" valuePropName="checked"><Switch /></Form.Item></Col>
               <Col span={8}><Form.Item name="allowRetake" label="允许重复考试" valuePropName="checked" tooltip="开启后学员可反复练习；关闭后每名学员只能提交一次"><Switch /></Form.Item></Col>
             </Row>
-            <Form.Item name="maxSwitch" label="切屏次数上限（超过强制交卷）"><InputNumber min={1} max={20} /></Form.Item>
+            <Tag color="orange">所有电脑和手机考试统一规则：切屏达到 3 次自动交卷</Tag>
           </Card>
         </Form>
       </Drawer>

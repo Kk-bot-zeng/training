@@ -113,6 +113,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Persist every screen switch so refresh/re-entry cannot reset the count.
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (user.role !== "employee") return NextResponse.json({ success: false, message: "仅学员可参加考试" }, { status: 403 });
+    const { attemptId } = await request.json();
+    if (!Number.isInteger(attemptId)) return NextResponse.json({ success: false, message: "参数错误" }, { status: 400 });
+    const updated = await prisma.examAttempt.updateMany({
+      where: { id: attemptId, employeeId: user.id, status: "in_progress", screenSwitches: { lt: 3 } },
+      data: { screenSwitches: { increment: 1 } },
+    });
+    const attempt = await prisma.examAttempt.findFirst({
+      where: { id: attemptId, employeeId: user.id }, select: { screenSwitches: true, status: true },
+    });
+    if (!attempt) return NextResponse.json({ success: false, message: "考试记录不存在" }, { status: 404 });
+    if (!updated.count && attempt.status !== "in_progress") return NextResponse.json({ success: false, message: "考试已结束" }, { status: 409 });
+    return NextResponse.json({ success: true, data: attempt });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ success: false, message: "切屏记录失败" }, { status: 500 });
+  }
+}
+
 // 学员提交答卷 + 自动判分
 export async function PUT(request: NextRequest) {
   try {
@@ -152,7 +175,7 @@ export async function PUT(request: NextRequest) {
         endTime: new Date(), score: totalScore,
         answers: JSON.stringify(gradedAnswers),
         status: "submitted",
-        screenSwitches: screenSwitches || 0,
+        screenSwitches: Math.min(3, Math.max(attempt.screenSwitches, Number(screenSwitches) || 0)),
       },
     });
 
