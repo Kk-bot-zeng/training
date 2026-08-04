@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, message } from "antd";
-import { DeleteOutlined, EditOutlined, ImportOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
 type Question = { id: number; type: string; productModel: string; category: string; difficulty: string; content: string; options?: string; answer: string; score: number; analysis?: string };
 const typeLabels: Record<string, string> = { single: "单选", multi: "多选", judge: "判断", essay: "问答" };
 const typeColors: Record<string, string> = { single: "blue", multi: "purple", judge: "cyan", essay: "orange" };
 const diffLabels: Record<string, string> = { easy: "简单", medium: "中等", hard: "困难" };
+const IMPORT_HEADERS = ["型号", "题型", "分类", "难度", "题目", "选项", "答案", "分值", "解析"] as const;
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -78,7 +79,26 @@ export default function QuestionsPage() {
 
   const importExcel = async (file: File) => {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(workbook.Sheets[workbook.SheetNames[0]]);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const headers = (XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, range: 0 })[0] || []).map((header) => String(header).trim());
+    const missingHeaders = IMPORT_HEADERS.filter((header) => !headers.includes(header));
+    if (missingHeaders.length) {
+      message.error(`模板格式不正确，缺少列：${missingHeaders.join("、")}`);
+      return false;
+    }
+    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: "" });
+    if (!rows.length) { message.warning("导入文件中没有题目"); return false; }
+    const invalidRows = rows.flatMap((row, index) => {
+      const type = String(row["题型"] || "").trim();
+      const difficulty = String(row["难度"] || "").trim();
+      const requiresAnswer = type !== "问答";
+      if (!row["题目"] || !type || !["单选", "多选", "判断", "问答"].includes(type) || !["简单", "中等", "困难"].includes(difficulty) || (requiresAnswer && !row["答案"])) return [index + 2];
+      return [];
+    });
+    if (invalidRows.length) {
+      message.error(`第 ${invalidRows.slice(0, 8).join("、")} 行格式不完整或题型/难度不符合模板要求${invalidRows.length > 8 ? "…" : ""}`);
+      return false;
+    }
     let created = 0;
     for (const row of rows) {
       const type = row["题型"] === "单选" ? "single" : row["题型"] === "多选" ? "multi" : row["题型"] === "判断" ? "judge" : "essay";
@@ -89,6 +109,20 @@ export default function QuestionsPage() {
       if (response.ok) created++;
     }
     message.success(`成功导入 ${created}/${rows.length} 道题`); setImportOpen(false); await fetchQuestions(); return false;
+  };
+
+  const downloadTemplate = () => {
+    const rows = [
+      [...IMPORT_HEADERS],
+      ["鹤 7 Pro 26 款", "单选", "产品参数", "中等", "示例：该型号支持哪项功能？", "A. 功能一|B. 功能二|C. 功能三|D. 功能四", "A", "2", "填写答案解析（选填）"],
+      ["通用", "判断", "品牌知识", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "正确", "2", "判断题选项可留空"],
+      ["通用", "问答", "销售话术", "困难", "示例：请说明产品的核心卖点。", "", "", "10", "问答题答案可留空，由管理员阅卷"],
+    ];
+    const sheet = XLSX.utils.aoa_to_sheet(rows);
+    sheet["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 42 }, { wch: 62 }, { wch: 12 }, { wch: 10 }, { wch: 32 }];
+    const template = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(template, sheet, "题库导入模板");
+    XLSX.writeFile(template, "雷鸟培训系统-题库导入模板.xlsx");
   };
 
   const columns = [
@@ -139,6 +173,13 @@ export default function QuestionsPage() {
         <Form.Item name="difficulty" label="统一修改难度"><Select allowClear options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
       </Form>
     </Modal>
-    <Modal title="批量导入题目" open={importOpen} onCancel={() => setImportOpen(false)} footer={null}><p>Excel 表头：<b>型号、题型、分类、难度、题目、选项、答案、分值、解析</b></p><input type="file" accept=".xlsx,.xls" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importExcel(file); }} /></Modal>
+    <Modal title="批量导入题目" open={importOpen} onCancel={() => setImportOpen(false)} footer={null}>
+      <p>请先下载最新版模板。模板字段会随题库字段更新：<b>{IMPORT_HEADERS.join("、")}</b></p>
+      <p style={{ color: "#64748b", fontSize: 13 }}>题型仅支持“单选 / 多选 / 判断 / 问答”；难度仅支持“简单 / 中等 / 困难”。单选、多选的选项用 <b>|</b> 分隔；问答题的答案可留空。</p>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+        <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>下载最新版导入模板</Button>
+        <input type="file" accept=".xlsx,.xls" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importExcel(file); event.currentTarget.value = ""; }} />
+      </Space>
+    </Modal>
   </div>;
 }
