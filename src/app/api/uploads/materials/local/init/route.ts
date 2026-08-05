@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const root = process.env.UPLOAD_ROOT;
     if (!root) throw new Error("本地文件存储未配置");
     const { name, size, type, partCount } = await request.json();
-    if (!name || size <= 0 || size > 50 * 1024 * 1024 || partCount <= 0) throw new Error("课件参数无效或超过 50MB");
+    if (!name || size <= 0 || size > 2 * 1024 * 1024 * 1024 || partCount <= 0) throw new Error("文件参数无效或超过 2GB");
     const uploadId = randomUUID();
     const dir = path.join(root, ".tmp", "materials", uploadId);
     await mkdir(dir, { recursive: true });
