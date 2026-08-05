@@ -137,6 +137,7 @@ export default function DashboardPage() {
               <CrownOutlined style={{ color: "#f59e0b", fontSize: 16 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤之星 TOP5</h3>
             </div>
+            <div style={{ maxHeight: 316, overflowY: "auto", paddingRight: 4, overscrollBehavior: "contain" }}>
             {attendanceStars.length === 0 ? (
               <div style={{ padding: "28px 0", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>暂无可统计的完成培训考勤数据</div>
             ) : attendanceStars.map((emp, i) => (
@@ -151,6 +152,7 @@ export default function DashboardPage() {
                 <Tag color={emp.rate >= 95 ? "success" : emp.rate >= 85 ? "processing" : "warning"} style={{ borderRadius: 8 }}>{emp.rate}%</Tag>
               </div>
             ))}
+            </div>
           </div>
         </Col>
 
