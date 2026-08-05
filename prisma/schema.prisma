@@ -27,6 +27,7 @@ model Employee {
   examAttempts          ExamAttempt[]
   deviceBinding         DeviceBinding?
   assignmentSubmissions AssignmentSubmission[]
+  learningAssignments   LearningAssignment[]
 
   @@index([departmentId, status])
   @@index([status, createdAt])
@@ -117,6 +118,39 @@ model TrainingRecord {
 
   @@index([date])
   @@index([status, date])
+}
+
+// ========== 培训进度追踪 ==========
+model LearningTask {
+  id          Int                  @id @default(autoincrement())
+  title       String
+  productLine String               @default("display") // display / tv / general
+  description String?
+  recording   String?
+  materials   String?              // JSON: [{name,url,type,required}]
+  dueDate     DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  assignments LearningAssignment[]
+
+  @@index([productLine, createdAt])
+}
+
+model LearningAssignment {
+  id            Int          @id @default(autoincrement())
+  taskId        Int
+  task          LearningTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employeeId    Int
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  videoSeconds  Int          @default(0)
+  videoDuration Int          @default(0)
+  viewedFiles   String       @default("[]")
+  completedAt   DateTime?
+  lastStudiedAt DateTime?
+  assignedAt    DateTime     @default(now())
+
+  @@unique([taskId, employeeId])
+  @@index([employeeId, completedAt])
 }
 
 // ========== 作业系统 ==========

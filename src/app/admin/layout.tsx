@@ -31,6 +31,7 @@ const menuItems = [
   ]},
   { type: "group", label: "培训档案", children: [
     { key: "/admin/training-records", icon: <FolderOpenOutlined />, label: "培训档案" },
+    { key: "/admin/learning-progress", icon: <BarChartOutlined />, label: "培训进度追踪" },
   ]},
   { type: "group", label: "考试管理", children: [
     { key: "/admin/questions", icon: <EditOutlined />, label: "题库管理" },
@@ -50,6 +51,7 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/attendance": "考勤记录",
   "/admin/statistics": "统计分析",
   "/admin/training-records": "培训档案",
+  "/admin/learning-progress": "培训进度追踪",
   "/admin/assignments": "作业管理",
 };
 

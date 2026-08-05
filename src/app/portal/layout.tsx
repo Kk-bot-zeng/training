@@ -12,6 +12,7 @@ const menuItems = [
   { key: "/portal", icon: <DashboardOutlined />, label: "首页" },
   { key: "/portal/exams", icon: <EditOutlined />, label: "我的考试" },
   { key: "/portal/trainings", icon: <BookOutlined />, label: "学习资料" },
+  { key: "/portal/learning-progress", icon: <BookOutlined />, label: "我的学习进度" },
   { key: "/portal/assignments", icon: <FormOutlined />, label: "我的作业" },
   { key: "/portal/attendance", icon: <CheckCircleOutlined />, label: "我的考勤" },
   { key: "/portal/scores", icon: <BarChartOutlined />, label: "成绩记录" },
