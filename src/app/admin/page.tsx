@@ -38,22 +38,15 @@ const trendData = [
   { month: "5月", rate: 94, count: 12 }, { month: "6月", rate: 96, count: 11 },
 ];
 
-const empRank = [
-  { name: "张三", dept: "技术部", rate: 100, total: 12 },
-  { name: "李四", dept: "技术部", rate: 95, total: 10 },
-  { name: "钱七", dept: "产品部", rate: 93, total: 11 },
-  { name: "王五", dept: "销售部", rate: 88, total: 8 },
-  { name: "孙八", dept: "产品部", rate: 85, total: 9 },
-];
-
 export default function DashboardPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const router = useRouter();
-  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[] }>(
+  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[]; attendanceStars: { rank: number; employeeId: number; name: string; dept: string; total: number; rate: number; attendedCount: number; eligibleCount: number }[] }>(
     "/api/statistics/overview", fetcher, swrConfig,
   );
   const departments = stats?.departments;
+  const attendanceStars = stats?.attendanceStars || [];
   const deptRank = (departments || []).map((department) => ({
     name: department.name,
     rate: parseFloat(department.rate),
@@ -144,10 +137,12 @@ export default function DashboardPage() {
               <CrownOutlined style={{ color: "#f59e0b", fontSize: 16 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤之星 TOP5</h3>
             </div>
-            {empRank.map((emp, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: i < 4 ? "1px solid #f3f4f6" : "none" }}>
+            {attendanceStars.length === 0 ? (
+              <div style={{ padding: "28px 0", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>暂无可统计的完成培训考勤数据</div>
+            ) : attendanceStars.map((emp, i) => (
+              <div key={emp.employeeId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: i < attendanceStars.length - 1 ? "1px solid #f3f4f6" : "none" }}>
                 <span style={{ fontSize: 18, fontWeight: 700, color: i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : i === 2 ? "#d97706" : "#9ca3af", width: 24, textAlign: "center" }}>
-                  {i + 1}
+                  {emp.rank}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#1f2937", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.name}</p>
