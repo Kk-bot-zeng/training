@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
       prisma.employee.findMany({
         where: { name: username },
         select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true },
-        take: 2,
       }),
     ]);
     if (admin) {
@@ -34,16 +33,30 @@ export async function POST(request: NextRequest) {
       token = await signToken({ id: admin.id, username: admin.username, role: "admin" });
       userData = { id: admin.id, name: admin.username, role: "admin" };
     } else {
-      if (!employeeByNo && employeesByName.length > 1) {
-        return NextResponse.json({ success: false, message: "存在同名学员，请使用工号登录" }, { status: 409 });
+      let employee = employeeByNo;
+      if (!employee && employeesByName.length > 1) {
+        const activeCandidates = employeesByName.filter((candidate) => candidate.status === "active" && candidate.passwordHash);
+        const passwordMatches = (await Promise.all(activeCandidates.map(async (candidate) =>
+          await bcrypt.compare(password, candidate.passwordHash!) ? candidate : null
+        ))).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
+        if (passwordMatches.length > 1) {
+          return NextResponse.json({ success: false, message: "同名账号使用了相同密码，请使用工号登录或联系管理员设置不同密码" }, { status: 409 });
+        }
+        employee = passwordMatches[0];
+        if (!employee) {
+          return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
+        }
+      } else if (!employee) {
+        employee = employeesByName[0];
       }
-      const employee = employeeByNo || employeesByName[0];
       if (!employee || employee.status !== "active" || !employee.passwordHash) {
         return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
       }
-      const valid = await bcrypt.compare(password, employee.passwordHash);
-      if (!valid) {
-        return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
+      if (employeeByNo || employeesByName.length <= 1) {
+        const valid = await bcrypt.compare(password, employee.passwordHash);
+        if (!valid) {
+          return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
+        }
       }
       token = await signToken({ id: employee.id, username: employee.name, role: "employee" });
       userData = { id: employee.id, name: employee.name, role: "employee" };
