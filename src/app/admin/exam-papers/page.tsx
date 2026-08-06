@@ -56,6 +56,8 @@ export default function ExamPapersPage() {
   const [grading, setGrading] = useState(false);
   const [qrPaper, setQrPaper] = useState<Record<string, unknown> | null>(null);
   const [questionModelFilter, setQuestionModelFilter] = useState<string>();
+  const [smartOpen, setSmartOpen] = useState(false);
+  const [smartInstruction, setSmartInstruction] = useState("");
   const [form] = Form.useForm();
   const selectedQuestionIds: number[] = Form.useWatch("questionIds", form) || [];
 
@@ -65,6 +67,11 @@ export default function ExamPapersPage() {
     const data = await res.json();
     if (data.success) setPapers(data.data);
     setLoading(false);
+  };
+  const smartCreate = async () => {
+    const data = await fetch("/api/papers/smart", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ instruction: smartInstruction }) }).then(r => r.json());
+    if (!data.success) return message.error(data.message);
+    message.success(`已生成 ${data.data.questionCount} 道题、${data.data.plan.totalScore} 分的草稿试卷`); setSmartOpen(false); setSmartInstruction(""); fetchPapers();
   };
 
   useEffect(() => {
@@ -196,10 +203,11 @@ export default function ExamPapersPage() {
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>试卷管理</h1>
           <p style={{ color: "#9ca3af", margin: "4px 0 0", fontSize: 14 }}>创建和管理考试试卷，发布后学员端可见</p>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPaper(null); form.resetFields(); setDrawerOpen(true); }}
-          style={{ borderRadius: 10, fontWeight: 500 }}>创建试卷</Button>
+        <Space><Button onClick={() => setSmartOpen(true)}>智能组卷</Button><Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingPaper(null); form.resetFields(); setDrawerOpen(true); }}
+          style={{ borderRadius: 10, fontWeight: 500 }}>创建试卷</Button></Space>
       </div>
 
+      <Modal title="智能随机组卷" open={smartOpen} onCancel={() => setSmartOpen(false)} onOk={smartCreate} okText="生成草稿试卷"><p>示例：给我创建一套鹤7 Pro 26款的试卷，10道题目，共100分</p><Input.TextArea rows={4} value={smartInstruction} onChange={e => setSmartInstruction(e.target.value)} placeholder="输入型号、题数和总分" /><p style={{ color: "#82939e", marginTop: 10 }}>优先抽取该型号专属题，再以通用题补足；分值自动均分，余分自动分配。生成后可手动调整。</p></Modal>
       <div style={{ background: "#fff", borderRadius: 16, padding: "4px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <Table dataSource={papers} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" scroll={{ x: 1120 }} />
