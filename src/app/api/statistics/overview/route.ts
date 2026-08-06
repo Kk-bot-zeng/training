@@ -26,9 +26,8 @@ export async function GET(request: NextRequest) {
           attendance: { select: { status: true } },
         },
         orderBy: { date: "desc" },
-        take: 20,
       }),
-      prisma.trainingRecord.findMany({ where: { status: "completed", date: trainingDateWhere }, select: { id: true, topic: true, date: true }, orderBy: { date: "desc" }, take: 20 }),
+      prisma.trainingRecord.findMany({ where: { status: "completed", date: trainingDateWhere }, select: { id: true, topic: true, date: true, participantCount: true }, orderBy: { date: "desc" } }),
       prisma.$queryRaw<{ name: string; total: number; attended: number }[]>(Prisma.sql`
         SELECT d."name", COUNT(a."id") FILTER (WHERE a."status" <> 'leave')::int AS "total",
           COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
@@ -79,7 +78,7 @@ export async function GET(request: NextRequest) {
     });
 
     let avgAttendanceRate = 0;
-    if (completedTrainings.length > 0) {
+    if (completedTrainings.length + historicalRecords.length > 0) {
       const rates = completedTrainings.map((t) => {
         const total = t.attendance.filter((a) => a.status !== "leave").length;
         if (total === 0) return 100;
@@ -88,8 +87,7 @@ export async function GET(request: NextRequest) {
         ).length;
         return (attended / total) * 100;
       });
-      avgAttendanceRate =
-        rates.reduce((sum, r) => sum + r, 0) / rates.length;
+      avgAttendanceRate = [...rates, ...historicalRecords.map(() => 100)].reduce((sum, r) => sum + r, 0) / (rates.length + historicalRecords.length);
     }
 
     const attendanceRecent: { id: string; title: string; date: string; rate: number | null; source?: string }[] = completedTrainings.map((t) => {
@@ -104,7 +102,7 @@ export async function GET(request: NextRequest) {
         rate: total > 0 ? Math.round((attended / total) * 100) : 0,
       };
     });
-    const recentTrainings = [...attendanceRecent, ...historicalRecords.map(record => ({ id: `record-${record.id}`, title: record.topic, date: record.date.toISOString(), rate: null as number | null, source: "record" }))].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+    const recentTrainings = [...attendanceRecent, ...historicalRecords.map(record => ({ id: `record-${record.id}`, title: record.topic, date: record.date.toISOString(), rate: 100, source: "record" }))].sort((a, b) => b.date.localeCompare(a.date));
 
     const trendBuckets = new Map<string, { attended: number; total: number; count: number }>();
     for (const training of completedTrainings) {
@@ -113,6 +111,12 @@ export async function GET(request: NextRequest) {
       bucket.total += training.attendance.filter(a => a.status !== "leave").length;
       bucket.attended += training.attendance.filter(a => ["present", "late"].includes(a.status)).length;
       bucket.count++; trendBuckets.set(key, bucket);
+    }
+    for (const record of historicalRecords) {
+      const key = `${record.date.getFullYear()}-${String(record.date.getMonth() + 1).padStart(2, "0")}`;
+      const bucket = trendBuckets.get(key) || { attended: 0, total: 0, count: 0 };
+      const participants = Math.max(record.participantCount, 1);
+      bucket.total += participants; bucket.attended += participants; bucket.count++; trendBuckets.set(key, bucket);
     }
     const trend = [...trendBuckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, bucket]) => ({ month: `${Number(month.slice(5))}月`, rate: bucket.total ? Math.round(bucket.attended / bucket.total * 1000) / 10 : 0, count: bucket.count }));
 

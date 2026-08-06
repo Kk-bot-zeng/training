@@ -27,7 +27,7 @@ const DepartmentRateChart = dynamic(
 
 const statCards = [
   { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "#173ec8", iconBg: "#edf2ff", iconColor: "#173ec8", suffix: "人" },
-  { key: "totalTrainingsThisMonth", title: "本月培训", icon: <BookOutlined />, gradient: "#315ce0", iconBg: "#eef3ff", iconColor: "#315ce0", suffix: "场" },
+  { key: "totalTrainingsThisMonth", title: "所选期间培训", icon: <BookOutlined />, gradient: "#315ce0", iconBg: "#eef3ff", iconColor: "#315ce0", suffix: "场" },
   { key: "avgAttendanceRate", title: "平均出勤率", icon: <PercentageOutlined />, gradient: "#5477e8", iconBg: "#f0f4ff", iconColor: "#5477e8", suffix: "%" },
   { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "#7792ed", iconBg: "#f3f6ff", iconColor: "#607fe3", suffix: "个" },
 ];
@@ -37,7 +37,7 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [overviewRange, setOverviewRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const router = useRouter();
-  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[]; trend: { month: string; rate: number; count: number }[]; attendanceStars: { rank: number; employeeId: number; name: string; dept: string; total: number; rate: number; attendedCount: number; eligibleCount: number }[] }>(
+  const { data: stats } = useSWR<OverviewStats & { managedTrainingCount: number; historicalRecordCount: number; departments: { name: string; rate: string; total: number }[]; trend: { month: string; rate: number; count: number }[]; attendanceStars: { rank: number; employeeId: number; name: string; dept: string; total: number; rate: number; attendedCount: number; eligibleCount: number }[] }>(
     overviewRange ? `/api/statistics/overview?startDate=${overviewRange[0].format("YYYY-MM-DD")}&endDate=${overviewRange[1].format("YYYY-MM-DD")}` : "/api/statistics/overview", fetcher, swrConfig,
   );
   const departments = stats?.departments;
@@ -92,6 +92,7 @@ export default function DashboardPage() {
                       <span style={{ fontSize: 36, fontWeight: 700, color: "#1f2937", lineHeight: 1 }}>{value}</span>
                       <span style={{ fontSize: 14, color: "#9ca3af" }}>{card.suffix}</span>
                     </div>
+                    {card.key === "totalTrainingsThisMonth" && <p style={{ color: "#9ca3af", fontSize: 11, margin: "7px 0 0" }}>培训管理 {stats?.managedTrainingCount || 0} 场 · 培训档案 {stats?.historicalRecordCount || 0} 场</p>}
                   </div>
                   <div style={{ width: 48, height: 48, borderRadius: 14, background: card.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: card.iconColor }}>{card.icon}</div>
                 </div>
@@ -109,7 +110,7 @@ export default function DashboardPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <RiseOutlined style={{ color: "#6384ff", fontSize: 18 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤率趋势</h3>
-              <span style={{ fontSize: 12, color: "#9ca3af" }}>近6个月</span>
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>{overviewRange ? "所选期间按月" : "本月"}</span>
             </div>
             <AttendanceTrendChart data={trendData} />
           </div>
@@ -159,13 +160,13 @@ export default function DashboardPage() {
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>📅 近期培训</h3>
               <span onClick={() => router.push("/admin/trainings")} style={{ fontSize: 13, color: "#6384ff", cursor: "pointer", fontWeight: 500 }}>查看全部 →</span>
             </div>
-            <Table<{ id: string; title: string; date: string; rate: number | null }> dataSource={(stats?.recentTrainings || []) as unknown as { id: string; title: string; date: string; rate: number | null }[]} columns={[
+            <div style={{ maxHeight: 316, overflowY: "auto", paddingRight: 4, overscrollBehavior: "contain" }}><Table<{ id: string; title: string; date: string; rate: number | null }> dataSource={(stats?.recentTrainings || []) as unknown as { id: string; title: string; date: string; rate: number | null }[]} columns={[
               { title: "名称", dataIndex: "title", key: "title", ellipsis: true },
               { title: "日期", dataIndex: "date", key: "date", width: 100, render: (d: string) => new Date(d).toLocaleDateString("zh-CN") },
-              { title: "出勤率", dataIndex: "rate", key: "rate", width: 80, render: (r: number | null) => r === null ? <Tag>档案记录</Tag> : <Tag color={r >= 90 ? "success" : r >= 70 ? "warning" : "error"} style={{ borderRadius: 8 }}>{r}%</Tag> },
+              { title: "出勤率", dataIndex: "rate", key: "rate", width: 80, render: (r: number | null) => <Tag color={r !== null && r >= 90 ? "success" : r !== null && r >= 70 ? "warning" : "error"} style={{ borderRadius: 8 }}>{r ?? 0}%</Tag> },
             ]} rowKey="id" pagination={false} size="small" showHeader={false}
               onRow={(r: { id: string }) => ({ onClick: () => r.id.startsWith("training-") ? router.push(`/admin/trainings/${r.id.replace("training-", "")}`) : router.push("/admin/training-records"), style: { cursor: "pointer" } })}
-              locale={{ emptyText: "暂无培训" }} />
+              locale={{ emptyText: "暂无培训" }} /></div>
           </div>
         </Col>
 
