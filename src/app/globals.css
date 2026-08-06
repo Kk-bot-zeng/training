@@ -110,7 +110,10 @@ body {
   position: sticky; top: 0; z-index: 20;
   background: rgba(255,255,255,.88);
   border-bottom: 1px solid rgba(208, 221, 227, .8);
-  backdrop-filter: blur(16px);
+  /* A full-width live backdrop blur repaints on every hover/mouse move on
+     some integrated GPUs. The opaque surface keeps the same visual hierarchy
+     without forcing continuous GPU compositing. */
+  background: #fff;
 }
 .ocean-content {
   height: calc(100vh - 64px);
@@ -121,7 +124,22 @@ body {
     var(--ocean-50);
 }
 .ocean-content h1 { color: var(--ink) !important; letter-spacing: -.025em; }
-.ocean-content > div { animation: ocean-enter .42s ease both; }
+.ocean-content > div { animation: ocean-enter .22s ease-out both; }
+
+/* Keep pointer interaction on its own inexpensive paint path. Large shadow
+   layers and implicit "transition: all" otherwise make table/card hovers
+   noticeably laggy on office PCs and remote desktop sessions. */
+.admin-shell .ant-card,
+.portal-shell .ant-card,
+.admin-shell .ant-table-wrapper,
+.portal-shell .ant-table-wrapper { transition-property: border-color, background-color, color, opacity !important; }
+.admin-shell .ant-table-tbody > tr > td,
+.portal-shell .ant-table-tbody > tr > td { transition-duration: 0s !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-content > div { animation: none; }
+  .admin-shell *, .portal-shell * { scroll-behavior: auto !important; }
+}
 
 .admin-shell .ant-card,
 .portal-shell .ant-card,
