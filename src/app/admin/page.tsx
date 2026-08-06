@@ -32,20 +32,16 @@ const statCards = [
   { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "#7792ed", iconBg: "#f3f6ff", iconColor: "#607fe3", suffix: "个" },
 ];
 
-const trendData = [
-  { month: "1月", rate: 92, count: 8 }, { month: "2月", rate: 88, count: 6 },
-  { month: "3月", rate: 95, count: 10 }, { month: "4月", rate: 91, count: 9 },
-  { month: "5月", rate: 94, count: 12 }, { month: "6月", rate: 96, count: 11 },
-];
-
 export default function DashboardPage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+  const [overviewRange, setOverviewRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const router = useRouter();
-  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[]; attendanceStars: { rank: number; employeeId: number; name: string; dept: string; total: number; rate: number; attendedCount: number; eligibleCount: number }[] }>(
-    "/api/statistics/overview", fetcher, swrConfig,
+  const { data: stats } = useSWR<OverviewStats & { departments: { name: string; rate: string; total: number }[]; trend: { month: string; rate: number; count: number }[]; attendanceStars: { rank: number; employeeId: number; name: string; dept: string; total: number; rate: number; attendedCount: number; eligibleCount: number }[] }>(
+    overviewRange ? `/api/statistics/overview?startDate=${overviewRange[0].format("YYYY-MM-DD")}&endDate=${overviewRange[1].format("YYYY-MM-DD")}` : "/api/statistics/overview", fetcher, swrConfig,
   );
   const departments = stats?.departments;
+  const trendData = stats?.trend || [];
   const attendanceStars = stats?.attendanceStars || [];
   const deptRank = (departments || []).map((department) => ({
     name: department.name,
@@ -76,7 +72,7 @@ export default function DashboardPage() {
       {/* 页面标题 */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1f2937", margin: 0 }}>数据概览</h1>
-        <p style={{ color: "#9ca3af", margin: "2px 0 0", fontSize: 14 }}>培训考勤数据一目了然</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 8 }}><p style={{ color: "#9ca3af", margin: 0, fontSize: 14 }}>培训考勤数据一目了然</p><RangePicker value={overviewRange} onChange={(value) => setOverviewRange(value as [dayjs.Dayjs, dayjs.Dayjs] | null)} placeholder={["开始日期", "结束日期"]} allowClear /></div>
       </div>
 
       {/* 渐变色统计卡片 */}
@@ -163,12 +159,12 @@ export default function DashboardPage() {
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>📅 近期培训</h3>
               <span onClick={() => router.push("/admin/trainings")} style={{ fontSize: 13, color: "#6384ff", cursor: "pointer", fontWeight: 500 }}>查看全部 →</span>
             </div>
-            <Table dataSource={stats?.recentTrainings || []} columns={[
+            <Table<{ id: string; title: string; date: string; rate: number | null }> dataSource={(stats?.recentTrainings || []) as unknown as { id: string; title: string; date: string; rate: number | null }[]} columns={[
               { title: "名称", dataIndex: "title", key: "title", ellipsis: true },
               { title: "日期", dataIndex: "date", key: "date", width: 100, render: (d: string) => new Date(d).toLocaleDateString("zh-CN") },
-              { title: "出勤率", dataIndex: "rate", key: "rate", width: 70, render: (r: number) => <Tag color={r >= 90 ? "success" : r >= 70 ? "warning" : "error"} style={{ borderRadius: 8 }}>{r}%</Tag> },
+              { title: "出勤率", dataIndex: "rate", key: "rate", width: 80, render: (r: number | null) => r === null ? <Tag>档案记录</Tag> : <Tag color={r >= 90 ? "success" : r >= 70 ? "warning" : "error"} style={{ borderRadius: 8 }}>{r}%</Tag> },
             ]} rowKey="id" pagination={false} size="small" showHeader={false}
-              onRow={r => ({ onClick: () => router.push(`/admin/trainings/${r.id}`), style: { cursor: "pointer" } })}
+              onRow={(r: { id: string }) => ({ onClick: () => r.id.startsWith("training-") ? router.push(`/admin/trainings/${r.id.replace("training-", "")}`) : router.push("/admin/training-records"), style: { cursor: "pointer" } })}
               locale={{ emptyText: "暂无培训" }} />
           </div>
         </Col>

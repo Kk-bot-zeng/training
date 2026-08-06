@@ -1,33 +1,42 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await getAuthAdmin();
 
     const now = new Date();
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const [totalEmployees, activeDepartments, totalTrainingsThisMonth, completedTrainings, departmentStats, attendanceStarRows] = await Promise.all([
+    const startParam = request.nextUrl.searchParams.get("startDate");
+    const endParam = request.nextUrl.searchParams.get("endDate");
+    const startDate = startParam ? new Date(`${startParam}T00:00:00`) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = endParam ? new Date(`${endParam}T23:59:59.999`) : now;
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) return NextResponse.json({ success: false, message: "日期范围无效" }, { status: 400 });
+    const trainingDateWhere = { gte: startDate, lte: endDate };
+    const [totalEmployees, activeDepartments, managedTrainingCount, recordTrainingCount, completedTrainings, historicalRecords, departmentStats, attendanceStarRows] = await Promise.all([
       prisma.employee.count({ where: { status: "active" } }),
       prisma.department.count(),
-      prisma.training.count({ where: { date: { gte: firstOfMonth } } }),
+      prisma.training.count({ where: { date: trainingDateWhere } }),
+      prisma.trainingRecord.count({ where: { status: "completed", date: trainingDateWhere } }),
       prisma.training.findMany({
-        where: { status: "completed" },
+        where: { status: "completed", date: trainingDateWhere },
         select: {
           id: true, title: true, date: true,
           attendance: { select: { status: true } },
         },
         orderBy: { date: "desc" },
-        take: 10,
+        take: 20,
       }),
+      prisma.trainingRecord.findMany({ where: { status: "completed", date: trainingDateWhere }, select: { id: true, topic: true, date: true }, orderBy: { date: "desc" }, take: 20 }),
       prisma.$queryRaw<{ name: string; total: number; attended: number }[]>(Prisma.sql`
         SELECT d."name", COUNT(a."id") FILTER (WHERE a."status" <> 'leave')::int AS "total",
           COUNT(a."id") FILTER (WHERE a."status" IN ('present', 'late'))::int AS "attended"
         FROM "Attendance" a
         INNER JOIN "Employee" e ON e."id" = a."employeeId"
         INNER JOIN "Department" d ON d."id" = e."departmentId"
+        INNER JOIN "Training" t ON t."id" = a."trainingId"
+        WHERE t."status" = 'completed' AND t."date" >= ${startDate} AND t."date" <= ${endDate}
         GROUP BY d."id", d."name"
       `),
       prisma.$queryRaw<{ employeeId: number; name: string; employeeNo: string | null; department: string; eligibleCount: number; attendedCount: number }[]>(Prisma.sql`
@@ -38,7 +47,7 @@ export async function GET() {
         INNER JOIN "Department" d ON d."id" = e."departmentId"
         INNER JOIN "Attendance" a ON a."employeeId" = e."id"
         INNER JOIN "Training" t ON t."id" = a."trainingId"
-        WHERE e."status" = 'active' AND t."status" = 'completed'
+        WHERE e."status" = 'active' AND t."status" = 'completed' AND t."date" >= ${startDate} AND t."date" <= ${endDate}
         GROUP BY e."id", e."name", e."employeeNo", d."name"
         HAVING COUNT(a."id") FILTER (WHERE a."status" <> 'leave') > 0
       `),
@@ -83,27 +92,42 @@ export async function GET() {
         rates.reduce((sum, r) => sum + r, 0) / rates.length;
     }
 
-    const recentTrainings = completedTrainings.slice(0, 5).map((t) => {
+    const attendanceRecent: { id: string; title: string; date: string; rate: number | null; source?: string }[] = completedTrainings.map((t) => {
       const total = t.attendance.filter((a) => a.status !== "leave").length;
       const attended = t.attendance.filter((a) =>
         ["present", "late"].includes(a.status)
       ).length;
       return {
-        id: t.id,
+        id: `training-${t.id}`,
         title: t.title,
         date: t.date.toISOString(),
         rate: total > 0 ? Math.round((attended / total) * 100) : 0,
       };
     });
+    const recentTrainings = [...attendanceRecent, ...historicalRecords.map(record => ({ id: `record-${record.id}`, title: record.topic, date: record.date.toISOString(), rate: null as number | null, source: "record" }))].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+
+    const trendBuckets = new Map<string, { attended: number; total: number; count: number }>();
+    for (const training of completedTrainings) {
+      const key = `${training.date.getFullYear()}-${String(training.date.getMonth() + 1).padStart(2, "0")}`;
+      const bucket = trendBuckets.get(key) || { attended: 0, total: 0, count: 0 };
+      bucket.total += training.attendance.filter(a => a.status !== "leave").length;
+      bucket.attended += training.attendance.filter(a => ["present", "late"].includes(a.status)).length;
+      bucket.count++; trendBuckets.set(key, bucket);
+    }
+    const trend = [...trendBuckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, bucket]) => ({ month: `${Number(month.slice(5))}月`, rate: bucket.total ? Math.round(bucket.attended / bucket.total * 1000) / 10 : 0, count: bucket.count }));
 
     return NextResponse.json({
       success: true,
       data: {
         totalEmployees,
-        totalTrainingsThisMonth,
+        totalTrainingsThisMonth: managedTrainingCount + recordTrainingCount,
+        managedTrainingCount,
+        historicalRecordCount: recordTrainingCount,
+        period: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
         avgAttendanceRate: Math.round(avgAttendanceRate * 10) / 10,
         activeDepartments,
         attendanceStars,
+        trend,
         recentTrainings,
         departments: departmentStats
           .map((department) => ({
