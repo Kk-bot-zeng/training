@@ -207,7 +207,7 @@ export default function ExamPapersPage() {
           style={{ borderRadius: 10, fontWeight: 500 }}>创建试卷</Button></Space>
       </div>
 
-      <Modal title="智能随机组卷" open={smartOpen} onCancel={() => setSmartOpen(false)} onOk={smartCreate} okText="生成草稿试卷"><p>示例：给我创建一套鹤7 Pro 26款的试卷，10道题目，共100分</p><Input.TextArea rows={4} value={smartInstruction} onChange={e => setSmartInstruction(e.target.value)} placeholder="输入型号、题数和总分" /><p style={{ color: "#82939e", marginTop: 10 }}>优先抽取该型号专属题，再以通用题补足；分值自动均分，余分自动分配。生成后可手动调整。</p></Modal>
+      <Modal title="智能随机组卷" open={smartOpen} onCancel={() => setSmartOpen(false)} onOk={smartCreate} okText="生成草稿试卷"><p>示例：包含鹤7 Pro 26款和通用题目，一共10道题目，共100分</p><Input.TextArea rows={4} value={smartInstruction} onChange={e => setSmartInstruction(e.target.value)} placeholder="输入分类、题数和总分" /><p style={{ color: "#82939e", marginTop: 10 }}>支持“各分类明确题数”或“多个分类合计题数”。合计模式会均衡抽题，某分类不足时由同一指令中的其他分类补足，并确保总分准确。</p></Modal>
       <div style={{ background: "#fff", borderRadius: 16, padding: "4px 0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <Table dataSource={papers} columns={columns} rowKey="id" loading={loading}
           pagination={{ pageSize: 20 }} locale={{ emptyText: "暂无试卷" }} size="middle" scroll={{ x: 1120 }} />
