@@ -92,7 +92,6 @@ export default function DashboardPage() {
                       <span style={{ fontSize: 36, fontWeight: 700, color: "#1f2937", lineHeight: 1 }}>{value}</span>
                       <span style={{ fontSize: 14, color: "#9ca3af" }}>{card.suffix}</span>
                     </div>
-                    {card.key === "totalTrainingsThisMonth" && <p style={{ color: "#9ca3af", fontSize: 11, margin: "7px 0 0" }}>培训管理 {stats?.managedTrainingCount || 0} 场 · 培训档案 {stats?.historicalRecordCount || 0} 场</p>}
                   </div>
                   <div style={{ width: 48, height: 48, borderRadius: 14, background: card.iconBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: card.iconColor }}>{card.icon}</div>
                 </div>

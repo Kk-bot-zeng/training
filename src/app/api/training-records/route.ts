@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
+function normalizeRecord<T extends { materials: string | null; recording: string | null }>(record: T) {
+  let materials: { name?: string; url?: string; type?: string }[] = [];
+  try {
+    const parsed = JSON.parse(record.materials || "[]");
+    if (Array.isArray(parsed)) materials = parsed.filter((item) => item && typeof item.url === "string" && item.url.trim());
+  } catch {}
+  const recording = typeof record.recording === "string" && record.recording.trim() ? record.recording.trim() : null;
+  return { ...record, materials: materials.length ? JSON.stringify(materials) : null, recording };
+}
+
 export async function GET(request: NextRequest) {
   try {
     await getAuthUser();
@@ -34,7 +44,7 @@ export async function GET(request: NextRequest) {
       prisma.trainingRecord.count({ where }),
     ]);
 
-    return NextResponse.json({ success: true, data: { items: records, total } });
+    return NextResponse.json({ success: true, data: { items: records.map(normalizeRecord), total } });
   } catch (error) {
     console.error("Get training records error:", error);
     return NextResponse.json({ success: false, message: "获取培训档案失败" }, { status: 500 });

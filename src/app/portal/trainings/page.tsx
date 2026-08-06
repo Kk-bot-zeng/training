@@ -24,7 +24,7 @@ function parseMaterials(value: string | null): Material[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.filter((material) => material?.url?.trim()) : [];
   } catch {
     return [];
   }
@@ -68,7 +68,7 @@ export default function MyTrainingsPage() {
     },
     {
       title: "录屏", dataIndex: "recording", key: "recording", width: 130,
-      render: (recording: string | null) => recording ? (
+      render: (recording: string | null) => recording?.trim() ? (
         <Button type="link" icon={<PlayCircleOutlined />} href={recording} target="_blank" rel="noopener noreferrer">观看录屏</Button>
       ) : <span style={{ color: "#9aa9b2" }}>暂未上传</span>,
     },

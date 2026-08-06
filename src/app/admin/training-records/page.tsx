@@ -11,6 +11,11 @@ const formatColors: Record<string, string> = { online: "blue", offline: "green",
 const statusLabels: Record<string, string> = { pending: "待开始", ongoing: "进行中", completed: "已完成" };
 const statusColors: Record<string, string> = { pending: "default", ongoing: "processing", completed: "success" };
 
+function validMaterials(value: string | null) {
+  try { const items = JSON.parse(value || "[]"); return Array.isArray(items) ? items.filter((item) => item?.url?.trim()) : []; } catch { return []; }
+}
+function hasRecording(value: string | null) { return Boolean(value?.trim()); }
+
 export default function TrainingRecordsPage() {
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,11 +174,9 @@ export default function TrainingRecordsPage() {
     { title: "讲师", dataIndex: "instructor", key: "instructor", width: 80, render: (v: string | null) => v || "-" },
     { title: "状态", dataIndex: "status", key: "status", width: 90, render: (s: string) => <Tag color={statusColors[s]}>{statusLabels[s]}</Tag> },
     { title: "课件", dataIndex: "materials", key: "materials", width: 80, render: (m: string | null) => {
-        if (!m) return <span style={{ color: "#d1d5db" }}>-</span>;
-        try { const arr = JSON.parse(m); return <Tag icon={<FileTextOutlined />} color="orange">{arr.length}个</Tag>; }
-        catch { return <Tag icon={<FileTextOutlined />} color="orange">1个</Tag>; }
+        const arr = validMaterials(m); return arr.length ? <Tag icon={<FileTextOutlined />} color="orange">{arr.length}个</Tag> : <span style={{ color: "#d1d5db" }}>-</span>;
       }},
-    { title: "录屏", dataIndex: "recording", key: "recording", width: 70, render: (r: string | null) => r ? <Tag icon={<PlayCircleOutlined />} color="red">有</Tag> : <span style={{ color: "#d1d5db" }}>-</span> },
+    { title: "录屏", dataIndex: "recording", key: "recording", width: 70, render: (r: string | null) => hasRecording(r) ? <Tag icon={<PlayCircleOutlined />} color="red">有</Tag> : <span style={{ color: "#d1d5db" }}>-</span> },
     { title: "操作", key: "actions", width: 140, render: (_: unknown, r: Record<string, unknown>) => (
         <Space size="small">
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => { setDetailRecord(r); setDetailOpen(true); }}>详情</Button>
