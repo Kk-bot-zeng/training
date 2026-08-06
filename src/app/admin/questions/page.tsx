@@ -9,7 +9,7 @@ type Question = { id: number; type: string; productModel: string; category: stri
 const typeLabels: Record<string, string> = { single: "单选", multi: "多选", judge: "判断", essay: "问答" };
 const typeColors: Record<string, string> = { single: "blue", multi: "purple", judge: "cyan", essay: "orange" };
 const diffLabels: Record<string, string> = { easy: "简单", medium: "中等", hard: "困难" };
-const IMPORT_HEADERS = ["型号", "题型", "分类", "难度", "题目", "选项", "答案", "分值", "解析"] as const;
+const IMPORT_HEADERS = ["题目分类", "题型", "难度", "题目", "选项", "答案", "分值", "解析"] as const;
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -103,7 +103,7 @@ export default function QuestionsPage() {
     for (const row of rows) {
       const type = row["题型"] === "单选" ? "single" : row["题型"] === "多选" ? "multi" : row["题型"] === "判断" ? "judge" : "essay";
       const response = await fetch("/api/questions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-        type, productModel: row["型号"] || "通用", category: row["分类"] || "通用", difficulty: row["难度"] === "简单" ? "easy" : row["难度"] === "困难" ? "hard" : "medium",
+        type, productModel: row["题目分类"] || "通用", category: "通用", difficulty: row["难度"] === "简单" ? "easy" : row["难度"] === "困难" ? "hard" : "medium",
         content: row["题目"], options: row["选项"]?.split("|").map((v) => v.trim()).filter(Boolean) || null, answer: row["答案"], score: Number(row["分值"]) || 2, analysis: row["解析"] || "",
       }) });
       if (response.ok) created++;
@@ -114,8 +114,8 @@ export default function QuestionsPage() {
   const downloadTemplate = () => {
     const rows = [
       [...IMPORT_HEADERS],
-      ["鹤 7 Pro 26 款", "单选", "产品参数", "中等", "示例：该型号支持哪项功能？", "A. 功能一|B. 功能二|C. 功能三|D. 功能四", "A", "2", "填写答案解析（选填）"],
-      ["通用", "判断", "品牌知识", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "正确", "2", "判断题选项可留空"],
+      ["鹤 7 Pro 26 款", "单选", "中等", "示例：该型号支持哪项功能？", "A. 功能一|B. 功能二|C. 功能三|D. 功能四", "A", "2", "填写答案解析（选填）"],
+      ["通用", "判断", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "正确", "2", "判断题选项可留空"],
       ["通用", "问答", "销售话术", "困难", "示例：请说明产品的核心卖点。", "", "", "10", "问答题答案可留空，由管理员阅卷"],
     ];
     const sheet = XLSX.utils.aoa_to_sheet(rows);
@@ -127,8 +127,7 @@ export default function QuestionsPage() {
 
   const columns = [
     { title: "题目", dataIndex: "content", ellipsis: true, width: 320 },
-    { title: "型号", dataIndex: "productModel", width: 130, render: (value: string) => <Tag color="geekblue">{value}</Tag> },
-    { title: "分类", dataIndex: "category", width: 110, render: (value: string) => <Tag>{value}</Tag> },
+    { title: "题目分类", dataIndex: "productModel", width: 150, render: (value: string) => <Tag color="geekblue">{value}</Tag> },
     { title: "题型", dataIndex: "type", width: 85, render: (value: string) => <Tag color={typeColors[value]}>{typeLabels[value]}</Tag> },
     { title: "难度", dataIndex: "difficulty", width: 75, render: (value: string) => diffLabels[value] || value },
     { title: "分值", dataIndex: "score", width: 65 },
@@ -140,10 +139,10 @@ export default function QuestionsPage() {
 
   return <div>
     <div className="page-toolbar">
-      <div><h1>题库管理</h1><p>按产品型号管理题目，支持批量选择、编辑和删除</p></div>
+      <div><h1>题库管理</h1><p>按题目分类管理题目，支持批量选择、编辑和删除</p></div>
       <Space wrap>
         <Input.Search placeholder="搜索题目" allowClear onSearch={setSearch} style={{ width: 180 }} />
-        <Select placeholder="型号筛选" allowClear showSearch value={productModelFilter} onChange={setProductModelFilter} style={{ width: 150 }} options={models.map((value) => ({ label: value, value }))} />
+        <Select placeholder="题目分类筛选" allowClear showSearch value={productModelFilter} onChange={setProductModelFilter} style={{ width: 150 }} options={models.map((value) => ({ label: value, value }))} />
         <Select placeholder="题型筛选" allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 120 }} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} />
         <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>批量导入</Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingQ(null); form.resetFields(); setDrawerOpen(true); }}>添加题目</Button>
@@ -153,9 +152,8 @@ export default function QuestionsPage() {
     <div className="table-card"><Table<Question> rowKey="id" dataSource={questions} columns={columns} loading={loading} rowSelection={{ selectedRowKeys: selectedIds, onChange: setSelectedIds, preserveSelectedRowKeys: true }} pagination={{ pageSize: 30, showSizeChanger: false }} scroll={{ x: 1000 }} /></div>
 
     <Drawer title={editingQ ? "编辑题目" : "添加题目"} open={drawerOpen} width={520} onClose={() => { setDrawerOpen(false); setEditingQ(null); form.resetFields(); }} extra={<Button type="primary" loading={submitting} onClick={saveQuestion}>保存</Button>}>
-      <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "single", productModel: "通用", category: "通用", difficulty: "medium", score: 2 }}>
-        <Form.Item name="productModel" label="产品型号（自动识别）" help="系统会从题干、选项和解析中识别电视型号；未识别到型号时自动归入“通用”，保存后仍可批量修正。"><Input disabled placeholder="保存时自动识别" /></Form.Item>
-        <Form.Item name="category" label="知识分类"><Input placeholder="例如：产品参数、卖点知识" /></Form.Item>
+      <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "single", productModel: "通用", difficulty: "medium", score: 2 }}>
+        <Form.Item name="productModel" label="题目分类（自动识别）" help="系统会从题干、选项和解析中识别电视型号；未识别到型号时自动归入“通用”。"><Input disabled placeholder="保存时自动识别" /></Form.Item>
         <Form.Item name="type" label="题型" rules={[{ required: true }]}><Radio.Group optionType="button" options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
         <Form.Item name="difficulty" label="难度"><Radio.Group optionType="button" options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
         <Form.Item name="content" label="题目内容" rules={[{ required: true, message: "请输入题目" }]}><Input.TextArea rows={3} /></Form.Item>
@@ -168,8 +166,7 @@ export default function QuestionsPage() {
 
     <Modal title={`批量编辑 ${selectedIds.length} 道题`} open={batchOpen} onCancel={() => setBatchOpen(false)} onOk={batchEdit} okText="应用修改">
       <Form form={batchForm} layout="vertical"><p style={{ color: "#64748b" }}>只填写需要统一修改的字段，留空的字段保持不变。</p>
-        <Form.Item name="productModel" label="统一修改型号"><Input placeholder="例如：鹤 7 Pro 26 款" /></Form.Item>
-        <Form.Item name="category" label="统一修改分类"><Input /></Form.Item>
+        <Form.Item name="productModel" label="统一修改题目分类"><Input placeholder="例如：鹤 7 Pro 26 款或通用" /></Form.Item>
         <Form.Item name="difficulty" label="统一修改难度"><Select allowClear options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
       </Form>
     </Modal>
