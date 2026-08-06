@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
+import { inferQuestionModel, questionSearchText } from "@/lib/question-model";
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
   try {
     await getAuthAdmin();
     const body = await request.json();
-    const { type, productModel, category, difficulty, content, options, optionsStr, answer, score, analysis } = body;
+    const { type, category, difficulty, content, options, optionsStr, answer, score, analysis } = body;
     if (!type || !content || (type !== "essay" && !answer)) {
       return NextResponse.json({ success: false, message: "题型、题目和客观题答案不能为空" }, { status: 400 });
     }
@@ -53,9 +54,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    const models = await prisma.examQuestion.findMany({ distinct: ["productModel"], select: { productModel: true } });
+    const detectedModel = inferQuestionModel(questionSearchText(content, normalizedOptions, analysis), models.map(item => item.productModel));
     const q = await prisma.examQuestion.create({
       data: {
-        type, productModel: productModel?.trim() || "通用", category: category || "通用", difficulty: difficulty || "medium",
+        type, productModel: detectedModel, category: category || "通用", difficulty: difficulty || "medium",
         content, options: normalizedOptions.length ? JSON.stringify(normalizedOptions) : null,
         answer: answer || "", score: score || 2, analysis: analysis || null,
       },

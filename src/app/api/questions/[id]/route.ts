@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
+import { inferQuestionModel, questionSearchText } from "@/lib/question-model";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,7 +21,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const data: Record<string, unknown> = {};
     if (body.type) data.type = body.type;
-    if (typeof body.productModel === "string" && body.productModel.trim()) data.productModel = body.productModel.trim();
     if (body.category) data.category = body.category;
     if (body.difficulty) data.difficulty = body.difficulty;
     if (body.content) data.content = body.content;
@@ -28,6 +28,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.answer !== undefined) data.answer = body.answer || "";
     if (body.score !== undefined) data.score = body.score;
     if (body.analysis !== undefined) data.analysis = body.analysis;
+    if (body.content || normalizedOptions !== null || body.analysis !== undefined) {
+      const current = await prisma.examQuestion.findUnique({ where: { id: parseInt(id) } });
+      const models = await prisma.examQuestion.findMany({ distinct: ["productModel"], select: { productModel: true } });
+      data.productModel = inferQuestionModel(questionSearchText(body.content || current?.content, normalizedOptions ?? current?.options, body.analysis ?? current?.analysis), models.map(item => item.productModel));
+    }
     const q = await prisma.examQuestion.update({ where: { id: parseInt(id) }, data });
     return NextResponse.json({ success: true, data: q });
   } catch (e) { console.error(e); return NextResponse.json({ success: false, message: "更新失败" }, { status: 500 }); }

@@ -154,7 +154,7 @@ export default function QuestionsPage() {
 
     <Drawer title={editingQ ? "编辑题目" : "添加题目"} open={drawerOpen} width={520} onClose={() => { setDrawerOpen(false); setEditingQ(null); form.resetFields(); }} extra={<Button type="primary" loading={submitting} onClick={saveQuestion}>保存</Button>}>
       <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "single", productModel: "通用", category: "通用", difficulty: "medium", score: 2 }}>
-        <Form.Item name="productModel" label="产品型号" rules={[{ required: true, message: "请输入产品型号" }]}><Input placeholder="例如：鹤 7 Pro 26 款；通用题填写“通用”" /></Form.Item>
+        <Form.Item name="productModel" label="产品型号（自动识别）" help="系统会从题干、选项和解析中识别电视型号；未识别到型号时自动归入“通用”，保存后仍可批量修正。"><Input disabled placeholder="保存时自动识别" /></Form.Item>
         <Form.Item name="category" label="知识分类"><Input placeholder="例如：产品参数、卖点知识" /></Form.Item>
         <Form.Item name="type" label="题型" rules={[{ required: true }]}><Radio.Group optionType="button" options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
         <Form.Item name="difficulty" label="难度"><Radio.Group optionType="button" options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
