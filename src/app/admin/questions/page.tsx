@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, Upload, message } from "antd";
+import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Progress, Radio, Select, Space, Table, Tag, Upload, message } from "antd";
 import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined, RobotOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
@@ -24,6 +24,7 @@ export default function QuestionsPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiFile, setAiFile] = useState<File | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiElapsed, setAiElapsed] = useState(0);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiQuestions, setAiQuestions] = useState<AiQuestion[]>([]);
   const [aiCategory, setAiCategory] = useState("通用");
@@ -55,6 +56,13 @@ export default function QuestionsPage() {
     const timer = window.setTimeout(() => { void fetchQuestions(); }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchQuestions]);
+
+  useEffect(() => {
+    if (!aiGenerating) return;
+    setAiElapsed(0);
+    const timer = window.setInterval(() => setAiElapsed((seconds) => seconds + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [aiGenerating]);
 
   const saveQuestion = async () => {
     try {
@@ -157,7 +165,9 @@ export default function QuestionsPage() {
       const result = await response.json();
       if (!result.success) return message.error(result.message || "AI 生成失败");
       setAiQuestions(result.data.questions || []);
-      message.success(`已生成 ${result.data.questions?.length || 0} 道题，请审核后入库`);
+      const timings = result.data.timings;
+      const speed = timings ? `（${timings.parseMethod} ${(timings.parseMs / 1000).toFixed(1)} 秒，AI ${(timings.aiMs / 1000).toFixed(1)} 秒）` : "";
+      message.success(`已生成 ${result.data.questions?.length || 0} 道题${speed}，请审核后入库`, 6);
     } catch {
       message.error("AI 生成请求失败，请稍后重试");
     } finally {
@@ -281,7 +291,13 @@ export default function QuestionsPage() {
         <p style={{ margin: 0, fontWeight: 600 }}>点击或拖入产品一页纸、参数表</p>
         <p style={{ margin: "6px 0 0", color: "#64748b" }}>支持 PDF、Word、Excel、PPT 和图片，单文件不超过 30MB</p>
       </Upload.Dragger>
-      {!aiQuestions.length && <Button type="primary" block icon={<RobotOutlined />} loading={aiGenerating} disabled={!aiFile} onClick={generateAiQuestions}>{aiGenerating ? "正在解析资料并生成题目…" : "开始生成题目"}</Button>}
+      {!aiQuestions.length && <>
+        <Button type="primary" block icon={<RobotOutlined />} loading={aiGenerating} disabled={!aiFile} onClick={generateAiQuestions}>{aiGenerating ? "正在处理，请勿关闭窗口…" : "开始生成题目"}</Button>
+        {aiGenerating && <div style={{ marginTop: 12 }}>
+          <Progress percent={Math.min(92, 12 + aiElapsed * 2)} status="active" showInfo={false} />
+          <div style={{ textAlign: "center", color: "#64748b", fontSize: 13 }}>{aiElapsed < 3 ? "正在上传资料" : aiElapsed < 10 ? "正在提取产品参数" : "AI 正在并行生成题目"} · 已等待 {aiElapsed} 秒</div>
+        </div>}
+      </>}
       {aiQuestions.length > 0 && <>
         <p style={{ color: "#64748b", margin: "4px 0 12px" }}>请逐题核对。所有内容都可以修改，确认后才会进入正式题库。</p>
         <Table<AiQuestion>
