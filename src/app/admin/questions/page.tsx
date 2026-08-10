@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, Upload, message } from "antd";
-import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined, RobotOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
 type Question = { id: number; type: string; productModel: string; category: string; difficulty: string; content: string; options?: string; answer: string; score: number; analysis?: string };
+type AiQuestion = { type: string; difficulty: string; content: string; options: string[]; answer: string; score: number; analysis: string; source?: string };
 const typeLabels: Record<string, string> = { single: "单选", multi: "多选", judge: "判断", essay: "问答" };
 const typeColors: Record<string, string> = { single: "blue", multi: "purple", judge: "cyan", essay: "orange" };
 const diffLabels: Record<string, string> = { easy: "简单", medium: "中等", hard: "困难" };
@@ -20,6 +21,15 @@ export default function QuestionsPage() {
   const [selectedIds, setSelectedIds] = useState<React.Key[]>([]);
   const [batchOpen, setBatchOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiFile, setAiFile] = useState<File | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiQuestions, setAiQuestions] = useState<AiQuestion[]>([]);
+  const [aiCategory, setAiCategory] = useState("通用");
+  const [aiCount, setAiCount] = useState(10);
+  const [aiDifficulty, setAiDifficulty] = useState("medium");
+  const [aiTypes, setAiTypes] = useState<string[]>(["single", "multi", "judge"]);
   const [submitting, setSubmitting] = useState(false);
   const [productModelFilter, setProductModelFilter] = useState<string>();
   const [typeFilter, setTypeFilter] = useState<string>();
@@ -130,6 +140,60 @@ export default function QuestionsPage() {
     XLSX.utils.book_append_sheet(template, sheet, "题库导入模板");
     XLSX.writeFile(template, "雷鸟培训系统-题库导入模板.xlsx");
   };
+
+  const generateAiQuestions = async () => {
+    if (!aiFile) return message.warning("请先选择产品一页纸或参数表");
+    if (!aiCategory.trim()) return message.warning("请填写题目分类");
+    if (!aiTypes.length) return message.warning("请至少选择一种题型");
+    setAiGenerating(true);
+    try {
+      const data = new FormData();
+      data.append("file", aiFile);
+      data.append("category", aiCategory.trim());
+      data.append("count", String(aiCount));
+      data.append("difficulty", aiDifficulty);
+      data.append("types", aiTypes.join(","));
+      const response = await fetch("/api/questions/ai-generate", { method: "POST", body: data });
+      const result = await response.json();
+      if (!result.success) return message.error(result.message || "AI 生成失败");
+      setAiQuestions(result.data.questions || []);
+      message.success(`已生成 ${result.data.questions?.length || 0} 道题，请审核后入库`);
+    } catch {
+      message.error("AI 生成请求失败，请稍后重试");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const updateAiQuestion = (index: number, changes: Partial<AiQuestion>) => {
+    setAiQuestions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes } : item));
+  };
+
+  const saveAiQuestions = async () => {
+    if (!aiQuestions.length) return;
+    setAiSaving(true);
+    let created = 0;
+    try {
+      for (const question of aiQuestions) {
+        const response = await fetch("/api/questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...question, productModel: aiCategory.trim() || "通用", category: aiCategory.trim() || "通用" }),
+        });
+        const result = await response.json();
+        if (result.success) created++;
+      }
+      if (created) await fetchQuestions();
+      if (created === aiQuestions.length) {
+        message.success(`已将 ${created} 道题保存到题库`);
+        setAiOpen(false); setAiQuestions([]); setAiFile(null);
+      } else {
+        message.warning(`已保存 ${created}/${aiQuestions.length} 道题，请检查未保存题目的内容`);
+      }
+    } finally {
+      setAiSaving(false);
+    }
+  };
   const columns = [
     { title: "题目", dataIndex: "content", ellipsis: true, width: 320 },
     { title: "题目分类", dataIndex: "productModel", width: 150, render: (value: string) => <Tag color="geekblue">{value}</Tag> },
@@ -149,6 +213,7 @@ export default function QuestionsPage() {
         <Input.Search placeholder="搜索题目" allowClear onSearch={setSearch} style={{ width: 180 }} />
         <Select placeholder="题目分类筛选" allowClear showSearch value={productModelFilter} onChange={setProductModelFilter} style={{ width: 150 }} options={models.map((value) => ({ label: value, value }))} />
         <Select placeholder="题型筛选" allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 120 }} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} />
+        <Button icon={<RobotOutlined />} onClick={() => setAiOpen(true)}>AI 生成题目</Button>
         <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>下载模板 / 批量导入</Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingQ(null); form.resetFields(); setDrawerOpen(true); }}>添加题目</Button>
       </Space>
@@ -185,6 +250,57 @@ export default function QuestionsPage() {
           <p style={{ margin: "8px 0 0", color: "#64748b" }}>支持 .xlsx、.xls 格式，选择后将自动开始导入</p>
         </Upload.Dragger>
       </Space>
+    </Modal>
+
+    <Modal
+      title="AI 从产品资料生成题目"
+      open={aiOpen}
+      width={1050}
+      onCancel={() => { if (!aiGenerating && !aiSaving) setAiOpen(false); }}
+      footer={aiQuestions.length ? [
+        <Button key="regenerate" loading={aiGenerating} onClick={generateAiQuestions}>重新生成</Button>,
+        <Button key="save" type="primary" loading={aiSaving} onClick={saveAiQuestions}>确认并保存 {aiQuestions.length} 道题</Button>,
+      ] : null}
+      destroyOnHidden
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div><div style={{ marginBottom: 6 }}>题目分类</div><Input value={aiCategory} onChange={(event) => setAiCategory(event.target.value)} placeholder="例如：鹤7 Pro 26款" /></div>
+        <div><div style={{ marginBottom: 6 }}>题目数量</div><InputNumber min={1} max={50} value={aiCount} onChange={(value) => setAiCount(value || 10)} style={{ width: "100%" }} /></div>
+        <div><div style={{ marginBottom: 6 }}>默认难度</div><Select value={aiDifficulty} onChange={setAiDifficulty} style={{ width: "100%" }} options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></div>
+        <div><div style={{ marginBottom: 6 }}>题型</div><Select mode="multiple" value={aiTypes} onChange={setAiTypes} style={{ width: "100%" }} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /></div>
+      </div>
+      <Upload.Dragger
+        accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.bmp,.tif,.tiff,.heif"
+        maxCount={1}
+        fileList={aiFile ? [{ uid: "ai-source", name: aiFile.name, status: "done" }] : []}
+        beforeUpload={(file) => { setAiFile(file as File); setAiQuestions([]); return false; }}
+        onRemove={() => { setAiFile(null); setAiQuestions([]); }}
+        disabled={aiGenerating}
+        style={{ padding: "8px 0", marginBottom: 16 }}
+      >
+        <p style={{ margin: 0, fontWeight: 600 }}>点击或拖入产品一页纸、参数表</p>
+        <p style={{ margin: "6px 0 0", color: "#64748b" }}>支持 PDF、Word、Excel、PPT 和图片，单文件不超过 30MB</p>
+      </Upload.Dragger>
+      {!aiQuestions.length && <Button type="primary" block icon={<RobotOutlined />} loading={aiGenerating} disabled={!aiFile} onClick={generateAiQuestions}>{aiGenerating ? "正在解析资料并生成题目…" : "开始生成题目"}</Button>}
+      {aiQuestions.length > 0 && <>
+        <p style={{ color: "#64748b", margin: "4px 0 12px" }}>请逐题核对。所有内容都可以修改，确认后才会进入正式题库。</p>
+        <Table<AiQuestion>
+          rowKey={(_, index) => String(index)}
+          dataSource={aiQuestions}
+          pagination={false}
+          size="small"
+          scroll={{ x: 980, y: 480 }}
+          columns={[
+            { title: "题型", width: 100, render: (_, row, index) => <Select value={row.type} onChange={(type) => updateAiQuestion(index, { type })} style={{ width: 90 }} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /> },
+            { title: "题目", width: 300, render: (_, row, index) => <Input.TextArea autoSize={{ minRows: 2, maxRows: 5 }} value={row.content} onChange={(event) => updateAiQuestion(index, { content: event.target.value })} /> },
+            { title: "选项（每行一项）", width: 220, render: (_, row, index) => <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} disabled={["judge", "essay"].includes(row.type)} value={row.options.join("\n")} onChange={(event) => updateAiQuestion(index, { options: event.target.value.split(/\r?\n/).filter(Boolean) })} /> },
+            { title: "答案", width: 140, render: (_, row, index) => <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={row.answer} onChange={(event) => updateAiQuestion(index, { answer: event.target.value })} /> },
+            { title: "分值", width: 75, render: (_, row, index) => <InputNumber min={1} max={100} value={row.score} onChange={(score) => updateAiQuestion(index, { score: score || 2 })} /> },
+            { title: "依据", width: 220, render: (_, row) => <span style={{ color: "#64748b", fontSize: 12 }}>{row.source || row.analysis}</span> },
+            { title: "", width: 55, fixed: "right", render: (_, __, index) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setAiQuestions((items) => items.filter((_, itemIndex) => itemIndex !== index))} /> },
+          ]}
+        />
+      </>}
     </Modal>
   </div>;
 }
