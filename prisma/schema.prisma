@@ -39,6 +39,8 @@ model PassageRecord {
   id         Int      @id @default(autoincrement())
   employeeId Int
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  sessionId  Int?
+  session    PassageSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   recordDate DateTime @db.Date
   status     String   @default("pending") // pending/passed/failed/leave
   remark     String?
@@ -47,6 +49,20 @@ model PassageRecord {
 
   @@unique([employeeId, recordDate])
   @@index([recordDate, status])
+  @@index([sessionId, employeeId])
+}
+
+model PassageSession {
+  id            Int             @id @default(autoincrement())
+  title         String
+  startTime     DateTime
+  endTime       DateTime
+  departmentIds String          @default("[]")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  records       PassageRecord[]
+
+  @@index([startTime, endTime])
 }
 
 model DeviceBinding {
