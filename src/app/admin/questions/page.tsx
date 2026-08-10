@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, message } from "antd";
+import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Radio, Select, Space, Table, Tag, Upload, message } from "antd";
 import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
@@ -171,9 +171,13 @@ export default function QuestionsPage() {
     </Modal>
     <Modal title="批量导入题目" open={importOpen} onCancel={() => setImportOpen(false)} footer={null}>
       <p>请先下载最新版模板。模板字段会随题库字段更新：<b>{IMPORT_HEADERS.join("、")}</b></p>
-      <p style={{ color: "#64748b", fontSize: 13 }}>题型支持单选、多选、判断、问答；难度支持简单、中等、困难。选项请在 Excel 单元格内换行填写，每行一项；问答题答案可留空。</p>\n      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <p style={{ color: "#64748b", fontSize: 13 }}>题型支持单选、多选、判断、问答；难度支持简单、中等、困难。选项请在 Excel 单元格内换行填写，每行一项；问答题答案可留空。</p>
+      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>下载最新版导入模板</Button>
-        <input type="file" accept=".xlsx,.xls" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importExcel(file); event.currentTarget.value = ""; }} />
+        <Upload.Dragger accept=".xlsx,.xls" maxCount={1} showUploadList={false} beforeUpload={(file) => { void importExcel(file as File); return false; }} style={{ padding: "12px 0" }}>
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>点击选择 Excel 文件，或拖拽文件到这里</p>
+          <p style={{ margin: "8px 0 0", color: "#64748b" }}>支持 .xlsx、.xls 格式，选择后将自动开始导入</p>
+        </Upload.Dragger>
       </Space>
     </Modal>
   </div>;
