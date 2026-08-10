@@ -9,6 +9,7 @@ import {
   CheckCircleOutlined, BarChartOutlined, LogoutOutlined, MenuFoldOutlined,
   MenuUnfoldOutlined, UserOutlined, HomeOutlined, FolderOpenOutlined,
   EditOutlined, FileTextOutlined, FormOutlined,
+  AuditOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
 
@@ -25,6 +26,7 @@ const menuItems = [
   { type: "group", label: "培训考勤", children: [
     { key: "/admin/trainings", icon: <BookOutlined />, label: "培训管理" },
     { key: "/admin/attendance", icon: <CheckCircleOutlined />, label: "考勤记录" },
+    { key: "/admin/passage-records", icon: <AuditOutlined />, label: "过堂记录" },
   ]},
   { type: "group", label: "数据分析", children: [
     { key: "/admin/statistics", icon: <BarChartOutlined />, label: "统计分析" },
@@ -49,6 +51,7 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/trainings": "培训管理",
   "/admin/trainings/create": "创建培训",
   "/admin/attendance": "考勤记录",
+  "/admin/passage-records": "过堂记录",
   "/admin/statistics": "统计分析",
   "/admin/training-records": "培训档案",
   "/admin/learning-progress": "培训进度追踪",

@@ -28,9 +28,25 @@ model Employee {
   deviceBinding         DeviceBinding?
   assignmentSubmissions AssignmentSubmission[]
   learningAssignments   LearningAssignment[]
+  passageRecords        PassageRecord[]
 
   @@index([departmentId, status])
   @@index([status, createdAt])
+}
+
+// ========== 过堂记录 ==========
+model PassageRecord {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  recordDate DateTime @db.Date
+  status     String   @default("pending") // pending/passed/failed/leave
+  remark     String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([employeeId, recordDate])
+  @@index([recordDate, status])
 }
 
 model DeviceBinding {
