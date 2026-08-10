@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const models = await prisma.examQuestion.findMany({ distinct: ["productModel"], select: { productModel: true } });
-    const detectedModel = inferQuestionModel(questionSearchText(content, normalizedOptions, analysis), models.map(item => item.productModel));
+    const detectedModel = String(body.productModel || category || "通用").trim() || "通用";
     const q = await prisma.examQuestion.create({
       data: {
-        type, productModel: detectedModel, category: category || "通用", difficulty: difficulty || "medium",
+        type, productModel: detectedModel, category: detectedModel, difficulty: difficulty || "medium",
         content, options: normalizedOptions.length ? JSON.stringify(normalizedOptions) : null,
         answer: answer || "", score: score || 2, analysis: analysis || null,
       },

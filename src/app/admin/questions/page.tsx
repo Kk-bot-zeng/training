@@ -49,7 +49,7 @@ export default function QuestionsPage() {
   const saveQuestion = async () => {
     try {
       const values = await form.validateFields(); setSubmitting(true);
-      const payload = { ...values, options: values.optionsStr ? values.optionsStr.split("|").map((v: string) => v.trim()).filter(Boolean) : null };
+      const payload = { ...values, options: values.optionsStr ? values.optionsStr.split(/\r?\n/).map((v: string) => v.trim()).filter(Boolean) : null };
       const data = await fetch(editingQ ? `/api/questions/${editingQ.id}` : "/api/questions", {
         method: editingQ ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       }).then((res) => res.json());
@@ -103,8 +103,8 @@ export default function QuestionsPage() {
     for (const row of rows) {
       const type = row["题型"] === "单选" ? "single" : row["题型"] === "多选" ? "multi" : row["题型"] === "判断" ? "judge" : "essay";
       const response = await fetch("/api/questions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-        type, productModel: row["题目分类"] || "通用", category: "通用", difficulty: row["难度"] === "简单" ? "easy" : row["难度"] === "困难" ? "hard" : "medium",
-        content: row["题目"], options: row["选项"]?.split("|").map((v) => v.trim()).filter(Boolean) || null, answer: row["答案"], score: Number(row["分值"]) || 2, analysis: row["解析"] || "",
+        type, productModel: row["题目分类"] || "通用", category: row["题目分类"] || "通用", difficulty: row["难度"] === "简单" ? "easy" : row["难度"] === "困难" ? "hard" : "medium",
+        content: row["题目"], options: row["选项"]?.split(/\r?\n/).map((v) => v.trim()).filter(Boolean) || null, answer: row["答案"], score: Number(row["分值"]) || 2, analysis: row["解析"] || "",
       }) });
       if (response.ok) created++;
     }
@@ -132,7 +132,7 @@ export default function QuestionsPage() {
     { title: "难度", dataIndex: "difficulty", width: 75, render: (value: string) => diffLabels[value] || value },
     { title: "分值", dataIndex: "score", width: 65 },
     { title: "操作", width: 135, fixed: "right" as const, render: (_: unknown, record: Question) => <Space size={0}>
-      <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditingQ(record); form.setFieldsValue({ ...record, optionsStr: record.options ? JSON.parse(record.options).join("|") : "" }); setDrawerOpen(true); }}>编辑</Button>
+      <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditingQ(record); form.setFieldsValue({ ...record, optionsStr: record.options ? JSON.parse(record.options).join("\\n") : "" }); setDrawerOpen(true); }}>编辑</Button>
       <Popconfirm title="确定删除这道题吗？" description="已加入试卷的题目不会被删除。" onConfirm={() => deleteOne(record.id)}><Button type="link" danger size="small" icon={<DeleteOutlined />} /></Popconfirm>
     </Space> },
   ];
@@ -153,11 +153,11 @@ export default function QuestionsPage() {
 
     <Drawer title={editingQ ? "编辑题目" : "添加题目"} open={drawerOpen} width={520} onClose={() => { setDrawerOpen(false); setEditingQ(null); form.resetFields(); }} extra={<Button type="primary" loading={submitting} onClick={saveQuestion}>保存</Button>}>
       <Form form={form} layout="vertical" preserve={false} initialValues={{ type: "single", productModel: "通用", difficulty: "medium", score: 2 }}>
-        <Form.Item name="productModel" label="题目分类（自动识别）" help="系统会从题干、选项和解析中识别电视型号；未识别到型号时自动归入“通用”。"><Input disabled placeholder="保存时自动识别" /></Form.Item>
+        <Form.Item name="productModel" label="题目分类" rules={[{ required: true, message: "请输入题目分类" }]} help="请手动填写分类，例如：通用、鹤7 Pro 26款。"><Input placeholder="请输入题目分类" /></Form.Item>
         <Form.Item name="type" label="题型" rules={[{ required: true }]}><Radio.Group optionType="button" options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
         <Form.Item name="difficulty" label="难度"><Radio.Group optionType="button" options={Object.entries(diffLabels).map(([value, label]) => ({ value, label }))} /></Form.Item>
         <Form.Item name="content" label="题目内容" rules={[{ required: true, message: "请输入题目" }]}><Input.TextArea rows={3} /></Form.Item>
-        <Form.Item name="optionsStr" label="选项（用 | 分隔）" help="例如：A. 选项一 | B. 选项二"><Input.TextArea rows={3} /></Form.Item>
+        <Form.Item name="optionsStr" label="选项（每行一项）" help="每行填写一个选项，例如：A. 选项一"><Input.TextArea rows={4} placeholder={"A. 选项一\\nB. 选项二\\nC. 选项三"} /></Form.Item>
         <Form.Item name="answer" label={questionType === "essay" ? "参考答案（选填）" : "答案"} rules={[{ required: questionType !== "essay", message: "请填写答案" }]}><Input /></Form.Item>
         <Form.Item name="score" label="分值"><InputNumber min={1} max={100} /></Form.Item>
         <Form.Item name="analysis" label="答案解析"><Input.TextArea rows={2} /></Form.Item>
