@@ -114,17 +114,16 @@ export default function QuestionsPage() {
   const downloadTemplate = () => {
     const rows = [
       [...IMPORT_HEADERS],
-      ["鹤 7 Pro 26 款", "单选", "中等", "示例：该型号支持哪项功能？", "A. 功能一|B. 功能二|C. 功能三|D. 功能四", "A", "2", "填写答案解析（选填）"],
+      ["鹤7 Pro 26款", "单选", "中等", "示例：该型号支持哪项功能？", "A. 功能一\nB. 功能二\nC. 功能三\nD. 功能四", "A", "2", "填写答案解析（选填）"],
       ["通用", "判断", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "正确", "2", "判断题选项可留空"],
-      ["通用", "问答", "销售话术", "困难", "示例：请说明产品的核心卖点。", "", "", "10", "问答题答案可留空，由管理员阅卷"],
+      ["通用", "问答", "困难", "示例：请说明产品的核心卖点。", "", "", "10", "问答题答案可留空，由管理员阅卷"],
     ];
     const sheet = XLSX.utils.aoa_to_sheet(rows);
-    sheet["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 42 }, { wch: 62 }, { wch: 12 }, { wch: 10 }, { wch: 32 }];
+    sheet["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 16 }, { wch: 42 }, { wch: 42 }, { wch: 12 }, { wch: 10 }, { wch: 32 }];
     const template = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(template, sheet, "题库导入模板");
     XLSX.writeFile(template, "雷鸟培训系统-题库导入模板.xlsx");
   };
-
   const columns = [
     { title: "题目", dataIndex: "content", ellipsis: true, width: 320 },
     { title: "题目分类", dataIndex: "productModel", width: 150, render: (value: string) => <Tag color="geekblue">{value}</Tag> },
@@ -144,7 +143,7 @@ export default function QuestionsPage() {
         <Input.Search placeholder="搜索题目" allowClear onSearch={setSearch} style={{ width: 180 }} />
         <Select placeholder="题目分类筛选" allowClear showSearch value={productModelFilter} onChange={setProductModelFilter} style={{ width: 150 }} options={models.map((value) => ({ label: value, value }))} />
         <Select placeholder="题型筛选" allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 120 }} options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} />
-        <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>批量导入</Button>
+        <Button icon={<ImportOutlined />} onClick={() => setImportOpen(true)}>下载模板 / 批量导入</Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingQ(null); form.resetFields(); setDrawerOpen(true); }}>添加题目</Button>
       </Space>
     </div>
@@ -172,8 +171,7 @@ export default function QuestionsPage() {
     </Modal>
     <Modal title="批量导入题目" open={importOpen} onCancel={() => setImportOpen(false)} footer={null}>
       <p>请先下载最新版模板。模板字段会随题库字段更新：<b>{IMPORT_HEADERS.join("、")}</b></p>
-      <p style={{ color: "#64748b", fontSize: 13 }}>题型仅支持“单选 / 多选 / 判断 / 问答”；难度仅支持“简单 / 中等 / 困难”。单选、多选的选项用 <b>|</b> 分隔；问答题的答案可留空。</p>
-      <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <p style={{ color: "#64748b", fontSize: 13 }}>题型支持单选、多选、判断、问答；难度支持简单、中等、困难。选项请在 Excel 单元格内换行填写，每行一项；问答题答案可留空。</p>\n      <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>下载最新版导入模板</Button>
         <input type="file" accept=".xlsx,.xls" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importExcel(file); event.currentTarget.value = ""; }} />
       </Space>
