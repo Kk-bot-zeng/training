@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Progress, Radio, Select, Space, Table, Tag, Upload, message } from "antd";
+import { Button, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Progress, Radio, Select, Space, Table, Tag, Tooltip, Upload, message } from "antd";
 import { DeleteOutlined, DownloadOutlined, EditOutlined, ImportOutlined, PlusOutlined, RobotOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
@@ -312,8 +312,18 @@ export default function QuestionsPage() {
             { title: "选项（每行一项）", width: 220, render: (_, row, index) => <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} disabled={["judge", "essay"].includes(row.type)} value={row.options.join("\n")} onChange={(event) => updateAiQuestion(index, { options: event.target.value.split(/\r?\n/).filter(Boolean) })} /> },
             { title: "答案", width: 140, render: (_, row, index) => <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={row.answer} onChange={(event) => updateAiQuestion(index, { answer: event.target.value })} /> },
             { title: "分值", width: 75, render: (_, row, index) => <InputNumber min={1} max={100} value={row.score} onChange={(score) => updateAiQuestion(index, { score: score || 2 })} /> },
-            { title: "依据", width: 220, render: (_, row) => <span style={{ color: "#64748b", fontSize: 12 }}>{row.source || row.analysis}</span> },
-            { title: "", width: 55, fixed: "right", render: (_, __, index) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setAiQuestions((items) => items.filter((_, itemIndex) => itemIndex !== index))} /> },
+            {
+              title: "依据",
+              width: 260,
+              onCell: () => ({ style: { verticalAlign: "top", paddingTop: 14 } }),
+              render: (_, row) => {
+                const source = row.source || row.analysis || "暂无依据";
+                return <Tooltip title={source} placement="topLeft" overlayStyle={{ maxWidth: 460 }}>
+                  <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.65, wordBreak: "break-word", overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, cursor: "help" }}>{source}</div>
+                </Tooltip>;
+              },
+            },
+            { title: "", width: 56, align: "center", fixed: "right", onCell: () => ({ style: { verticalAlign: "top", paddingTop: 8 } }), render: (_, __, index) => <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setAiQuestions((items) => items.filter((_, itemIndex) => itemIndex !== index))} /> },
           ]}
         />
       </>}
