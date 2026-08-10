@@ -9,7 +9,7 @@ type Question = { id: number; type: string; productModel: string; category: stri
 const typeLabels: Record<string, string> = { single: "单选", multi: "多选", judge: "判断", essay: "问答" };
 const typeColors: Record<string, string> = { single: "blue", multi: "purple", judge: "cyan", essay: "orange" };
 const diffLabels: Record<string, string> = { easy: "简单", medium: "中等", hard: "困难" };
-const IMPORT_HEADERS = ["题目分类", "题型", "难度", "题目", "选项", "答案", "分值", "解析"] as const;
+const IMPORT_HEADERS = ["题目分类", "题型", "难度", "题目", "选项1", "选项2", "选项3", "选项4", "答案", "分值", "解析"] as const;
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -81,8 +81,11 @@ export default function QuestionsPage() {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const headers = (XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, range: 0 })[0] || []).map((header) => String(header).trim());
-    const missingHeaders = IMPORT_HEADERS.filter((header) => !headers.includes(header));
-    if (missingHeaders.length) {
+    const hasNewOptionColumns = ["选项1", "选项2", "选项3", "选项4"].every((header) => headers.includes(header));
+    const requiredHeaders = IMPORT_HEADERS.filter((header) => !header.startsWith("选项"));
+    const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
+    const usesLegacyOptionColumn = headers.includes("选项");
+    if (missingHeaders.length || (!hasNewOptionColumns && !usesLegacyOptionColumn)) {
       message.error(`模板格式不正确，缺少列：${missingHeaders.join("、")}`);
       return false;
     }
@@ -92,7 +95,10 @@ export default function QuestionsPage() {
       const type = String(row["题型"] || "").trim();
       const difficulty = String(row["难度"] || "").trim();
       const requiresAnswer = type !== "问答";
-      if (!row["题目"] || !type || !["单选", "多选", "判断", "问答"].includes(type) || !["简单", "中等", "困难"].includes(difficulty) || (requiresAnswer && !row["答案"])) return [index + 2];
+      const options = hasNewOptionColumns
+        ? [row["选项1"], row["选项2"], row["选项3"], row["选项4"]].map((value) => String(value).trim()).filter(Boolean)
+        : String(row["选项"] || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+      if (!row["题目"] || !type || !["单选", "多选", "判断", "问答"].includes(type) || !["简单", "中等", "困难"].includes(difficulty) || (requiresAnswer && !row["答案"]) || (["单选", "多选"].includes(type) && options.length < 2)) return [index + 2];
       return [];
     });
     if (invalidRows.length) {
@@ -104,7 +110,7 @@ export default function QuestionsPage() {
       const type = row["题型"] === "单选" ? "single" : row["题型"] === "多选" ? "multi" : row["题型"] === "判断" ? "judge" : "essay";
       const response = await fetch("/api/questions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
         type, productModel: row["题目分类"] || "通用", category: row["题目分类"] || "通用", difficulty: row["难度"] === "简单" ? "easy" : row["难度"] === "困难" ? "hard" : "medium",
-        content: row["题目"], options: row["选项"]?.split(/\r?\n/).map((v) => v.trim()).filter(Boolean) || null, answer: row["答案"], score: Number(row["分值"]) || 2, analysis: row["解析"] || "",
+        content: row["题目"], options: (hasNewOptionColumns ? [row["选项1"], row["选项2"], row["选项3"], row["选项4"]].map((value) => String(value).trim()).filter(Boolean) : String(row["选项"] || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean)) || null, answer: row["答案"], score: Number(row["分值"]) || 2, analysis: row["解析"] || "",
       }) });
       if (response.ok) created++;
     }
@@ -114,12 +120,12 @@ export default function QuestionsPage() {
   const downloadTemplate = () => {
     const rows = [
       [...IMPORT_HEADERS],
-      ["鹤7 Pro 26款", "单选", "中等", "示例：该型号支持哪项功能？", "A. 功能一\nB. 功能二\nC. 功能三\nD. 功能四", "A", "2", "填写答案解析（选填）"],
-      ["通用", "判断", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "正确", "2", "判断题选项可留空"],
-      ["通用", "问答", "困难", "示例：请说明产品的核心卖点。", "", "", "10", "问答题答案可留空，由管理员阅卷"],
+      ["鹤7 Pro 26款", "单选", "中等", "示例：该型号支持哪项功能？", "A. 功能一", "B. 功能二", "C. 功能三", "D. 功能四", "A", "2", "填写答案解析（选填）"],
+      ["通用", "判断", "简单", "示例：雷鸟培训系统支持手机端考试。", "", "", "", "", "正确", "2", "判断题选项可留空"],
+      ["通用", "问答", "困难", "示例：请说明产品的核心卖点。", "", "", "", "", "", "10", "问答题答案可留空，由管理员阅卷"],
     ];
     const sheet = XLSX.utils.aoa_to_sheet(rows);
-    sheet["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 16 }, { wch: 42 }, { wch: 42 }, { wch: 12 }, { wch: 10 }, { wch: 32 }];
+    sheet["!cols"] = [{ wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 42 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 32 }];
     const template = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(template, sheet, "题库导入模板");
     XLSX.writeFile(template, "雷鸟培训系统-题库导入模板.xlsx");
@@ -171,7 +177,7 @@ export default function QuestionsPage() {
     </Modal>
     <Modal title="批量导入题目" open={importOpen} onCancel={() => setImportOpen(false)} footer={null}>
       <p>请先下载最新版模板。模板字段会随题库字段更新：<b>{IMPORT_HEADERS.join("、")}</b></p>
-      <p style={{ color: "#64748b", fontSize: 13 }}>题型支持单选、多选、判断、问答；难度支持简单、中等、困难。选项请在 Excel 单元格内换行填写，每行一项；问答题答案可留空。</p>
+      <p style={{ color: "#64748b", fontSize: 13 }}>题型支持单选、多选、判断、问答；难度支持简单、中等、困难。选项1～选项4分别填写；判断题和问答题的选项可留空，问答题答案可留空。</p>
       <Space direction="vertical" size={14} style={{ width: "100%" }}>
         <Button icon={<DownloadOutlined />} onClick={downloadTemplate}>下载最新版导入模板</Button>
         <Upload.Dragger accept=".xlsx,.xls" maxCount={1} showUploadList={false} beforeUpload={(file) => { void importExcel(file as File); return false; }} style={{ padding: "12px 0" }}>

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const normalizedOptions = Array.isArray(options)
       ? options
       : typeof optionsStr === "string"
-        ? optionsStr.split("|").map((option: string) => option.trim()).filter(Boolean)
+        ? optionsStr.split(/\r?\n/).map((option: string) => option.trim()).filter(Boolean)
         : [];
     if (["single", "multi"].includes(type) && normalizedOptions.length < 2) {
       return NextResponse.json(
