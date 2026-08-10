@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
     for (const [index, row] of rows.entries()) {
       const no = String(row["工号"] || "").trim(); const name = String(row["员工"] || row["姓名"] || "").trim(); const department = String(row["部门"] || "").trim();
       const status = ({ "待过堂": "pending", "通过": "passed", "未通过": "failed", "请假": "leave" } as Record<string, string>)[String(row["过堂情况"] || "").trim()] || String(row["过堂情况"] || "").trim();
-      const employee = no ? employees.find(item => item.employeeNo === no) : employees.find(item => item.name === name && (!department || item.department.name === department));
-      if (!employee || !allowed.includes(status)) { errors.push(String(index + 2)); continue; }
+      const employee = no ? employees.find(item => item.employeeNo === no) : employees.find(item => item.name === name && item.department.name === department);
+      if (!name || !department || !employee || (status && !allowed.includes(status))) { errors.push(String(index + 2)); continue; }
       const existing = await prisma.passageRecord.findFirst({ where: { sessionId: session.id, employeeId: employee.id } });
-      const data = { status, remark: String(row["备注"] || "").trim() || null };
+      const data = { status: status || "pending", remark: String(row["备注"] || "").trim() || null };
       if (existing) await prisma.passageRecord.update({ where: { id: existing.id }, data }); else await prisma.passageRecord.create({ data: { ...data, sessionId: session.id, employeeId: employee.id, recordDate: session.startTime } });
       updated++;
     }
