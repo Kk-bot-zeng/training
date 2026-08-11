@@ -7,7 +7,8 @@ import { getAuthAdmin } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     await getAuthAdmin();
-    const root = process.env.UPLOAD_ROOT;
+    const uploadRoot = process.env.UPLOAD_ROOT;
+    const root = process.env.MATERIAL_ROOT || (uploadRoot ? path.join(path.dirname(uploadRoot), "protected-uploads") : undefined);
     if (!root) throw new Error("本地文件存储未配置");
     const { name, size, type, partCount } = await request.json();
     if (!name || size <= 0 || size > 2 * 1024 * 1024 * 1024 || partCount <= 0) throw new Error("文件参数无效或超过 2GB");

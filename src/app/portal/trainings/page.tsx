@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import useSWR from "swr";
-import { Button, Space, Table, Tag, Spin, Tooltip } from "antd";
+import { Alert, Button, Modal, Space, Table, Tag, Spin, Tooltip } from "antd";
 import { FileTextOutlined, PlayCircleOutlined, LinkOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { fetcher, swrConfig } from "@/lib/fetcher";
@@ -31,6 +32,7 @@ function parseMaterials(value: string | null): Material[] {
 }
 
 export default function MyTrainingsPage() {
+  const [preview, setPreview] = useState<{ title: string; url: string; video: boolean } | null>(null);
   const { data, isLoading } = useSWR<{ items: TrainingRecord[]; total: number }>(
     "/api/training-records?pageSize=100",
     fetcher,
@@ -57,7 +59,7 @@ export default function MyTrainingsPage() {
           <Space size={[6, 6]} wrap>
             {materials.map((material, index) => material.url ? (
               <Tooltip title={material.name} key={`${material.name}-${index}`}>
-                <Button size="small" icon={<FileTextOutlined />} href={material.url} target="_blank" rel="noopener noreferrer">
+                <Button size="small" icon={<FileTextOutlined />} onClick={() => setPreview({ title: material.name || `课件${index + 1}`, url: material.url, video: false })}>
                   {material.name || `课件${index + 1}`}
                 </Button>
               </Tooltip>
@@ -69,7 +71,7 @@ export default function MyTrainingsPage() {
     {
       title: "录屏", dataIndex: "recording", key: "recording", width: 130,
       render: (recording: string | null) => recording?.trim() ? (
-        <Button type="link" icon={<PlayCircleOutlined />} href={recording} target="_blank" rel="noopener noreferrer">观看录屏</Button>
+        <Button type="link" icon={<PlayCircleOutlined />} onClick={() => setPreview({ title: "培训录屏", url: recording, video: true })}>观看录屏</Button>
       ) : <span style={{ color: "#9aa9b2" }}>暂未上传</span>,
     },
   ];
@@ -87,6 +89,19 @@ export default function MyTrainingsPage() {
           pagination={{ pageSize: 20 }} scroll={{ x: 980 }}
           locale={{ emptyText: <div style={{ padding: 40 }}><LinkOutlined style={{ fontSize: 24, marginBottom: 8 }} /><br />暂无培训学习资料</div> }} />
       </div>
+      <Modal title={preview?.title} open={Boolean(preview)} onCancel={() => setPreview(null)} footer={null}
+        width={preview?.video ? 900 : 1000} destroyOnHidden styles={{ body: { padding: 0 } }}>
+        <Alert type="info" showIcon message="资料仅限在线学习，不提供下载。请勿截图、录屏或对外传播。" style={{ margin: "12px 0" }} />
+        {preview?.video ? (
+          <video controls controlsList="nodownload noremoteplayback" disablePictureInPicture preload="metadata"
+            src={preview.url} onContextMenu={(event) => event.preventDefault()}
+            style={{ display: "block", width: "100%", maxHeight: "68vh", background: "#0b1220", objectFit: "contain" }} />
+        ) : preview ? (
+          <iframe title={preview.title} src={preview.url} sandbox="allow-same-origin allow-scripts"
+            referrerPolicy="no-referrer" onContextMenu={(event) => event.preventDefault()}
+            style={{ width: "100%", height: "68vh", border: 0, background: "#f4f6fb" }} />
+        ) : null}
+      </Modal>
     </div>
   );
 }

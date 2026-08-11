@@ -308,7 +308,7 @@ export default function TrainingRecordsPage() {
                 <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: "#991b1b" }}>
                   <PlayCircleOutlined style={{ marginRight: 6 }} />培训录屏
                 </h4>
-                <a href={detailRecord.recording as string} target="_blank" rel="noopener noreferrer"
+                  <a href={`/api/learning-files/view?scope=training&id=${detailRecord.id}&kind=recording`} target="_blank" rel="noopener noreferrer"
                   style={{ color: "#2563eb", fontSize: 13, wordBreak: "break-all" }}>
                   {detailRecord.recording as string}
                 </a>
@@ -329,7 +329,7 @@ export default function TrainingRecordsPage() {
                       <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: i < mats.length - 1 ? "1px solid #fed7aa" : "none" }}>
                         <span style={{ fontSize: 13, fontWeight: 500 }}>{m.name || `课件${i + 1}`}</span>
                         {m.url ? (
-                          <a href={m.url} target="_blank" rel="noopener noreferrer"
+                          <a href={`/api/learning-files/view?scope=training&id=${detailRecord.id}&kind=material&index=${i}`} target="_blank" rel="noopener noreferrer"
                             style={{ color: "#2563eb", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
                             <LinkOutlined /> 打开
                           </a>

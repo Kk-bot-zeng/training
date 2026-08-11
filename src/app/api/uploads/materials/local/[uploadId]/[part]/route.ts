@@ -6,7 +6,8 @@ import { getAuthAdmin } from "@/lib/auth";
 export async function PUT(request: Request, { params }: { params: Promise<{ uploadId: string; part: string }> }) {
   try {
     await getAuthAdmin();
-    const root = process.env.UPLOAD_ROOT;
+    const uploadRoot = process.env.UPLOAD_ROOT;
+    const root = process.env.MATERIAL_ROOT || (uploadRoot ? path.join(path.dirname(uploadRoot), "protected-uploads") : undefined);
     if (!root) throw new Error("本地文件存储未配置");
     const { uploadId, part } = await params;
     if (!/^[0-9a-f-]{36}$/.test(uploadId) || !/^\d+$/.test(part)) throw new Error("上传参数无效");

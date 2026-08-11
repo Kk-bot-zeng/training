@@ -15,7 +15,22 @@ export async function GET() {
     const items = await prisma.learningAssignment.findMany({
       where: { employeeId: user.id }, include: { task: true }, orderBy: { assignedAt: "desc" },
     });
-    return NextResponse.json({ success: true, data: items });
+    const protectedItems = items.map((item) => {
+      let taskMaterials: { name?: string; type?: string }[] = [];
+      try { const parsed = JSON.parse(item.task.materials || "[]"); if (Array.isArray(parsed)) taskMaterials = parsed; } catch {}
+      return {
+        ...item,
+        task: {
+          ...item.task,
+          recording: item.task.recording ? `/api/learning-files/view?scope=task&id=${item.id}&kind=recording` : null,
+          materials: JSON.stringify(taskMaterials.map((material, index) => ({
+            name: material.name, type: material.type,
+            url: `/api/learning-files/view?scope=task&id=${item.id}&kind=material&index=${index}`,
+          }))),
+        },
+      };
+    });
+    return NextResponse.json({ success: true, data: protectedItems });
   } catch { return NextResponse.json({ success: false, message: "获取学习任务失败" }, { status: 401 }); }
 }
 

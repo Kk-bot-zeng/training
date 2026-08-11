@@ -2,19 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
-function normalizeRecord<T extends { materials: string | null; recording: string | null }>(record: T) {
+function normalizeRecord<T extends { id: number; materials: string | null; recording: string | null }>(record: T, protect = false) {
   let materials: { name?: string; url?: string; type?: string }[] = [];
   try {
     const parsed = JSON.parse(record.materials || "[]");
     if (Array.isArray(parsed)) materials = parsed.filter((item) => item && typeof item.url === "string" && item.url.trim());
   } catch {}
-  const recording = typeof record.recording === "string" && record.recording.trim() ? record.recording.trim() : null;
+  if (protect) materials = materials.map((item, index) => ({
+    name: item.name, type: item.type,
+    url: `/api/learning-files/view?scope=training&id=${record.id}&kind=material&index=${index}`,
+  }));
+  const hasRecording = typeof record.recording === "string" && Boolean(record.recording.trim());
+  const recording = hasRecording
+    ? (protect ? `/api/learning-files/view?scope=training&id=${record.id}&kind=recording` : record.recording!.trim())
+    : null;
   return { ...record, materials: materials.length ? JSON.stringify(materials) : null, recording };
 }
 
 export async function GET(request: NextRequest) {
   try {
-    await getAuthUser();
+    const user = await getAuthUser();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status");
@@ -44,7 +51,7 @@ export async function GET(request: NextRequest) {
       prisma.trainingRecord.count({ where }),
     ]);
 
-    return NextResponse.json({ success: true, data: { items: records.map(normalizeRecord), total } });
+    return NextResponse.json({ success: true, data: { items: records.map((record) => normalizeRecord(record, user.role === "employee")), total } });
   } catch (error) {
     console.error("Get training records error:", error);
     return NextResponse.json({ success: false, message: "获取培训档案失败" }, { status: 500 });
