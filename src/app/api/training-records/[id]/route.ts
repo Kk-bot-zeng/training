@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
+import { normalizeTrainingMaterials, validResourceUrl } from "@/lib/training-materials";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,8 +21,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ...(body.instructor !== undefined && { instructor: body.instructor }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.status && { status: body.status }),
-        ...(body.materials !== undefined && { materials: typeof body.materials === "string" ? body.materials : JSON.stringify(body.materials) }),
-        ...(body.recording !== undefined && { recording: body.recording }),
+        ...(body.materials !== undefined && (() => { const items = normalizeTrainingMaterials(body.materials); return { materials: items.length ? JSON.stringify(items) : null }; })()),
+        ...(body.recording !== undefined && { recording: validResourceUrl(body.recording) }),
       },
     });
 

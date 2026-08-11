@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin, getAuthUser } from "@/lib/auth";
+import { normalizeTrainingMaterials, validResourceUrl } from "@/lib/training-materials";
 
 function normalizeRecord<T extends { id: number; materials: string | null; recording: string | null }>(record: T, protect = false) {
-  let materials: { name?: string; url?: string; type?: string }[] = [];
-  try {
-    const parsed = JSON.parse(record.materials || "[]");
-    if (Array.isArray(parsed)) materials = parsed.filter((item) => item && typeof item.url === "string" && item.url.trim());
-  } catch {}
+  let materials = normalizeTrainingMaterials(record.materials);
   if (protect) materials = materials.map((item, index) => ({
     name: item.name, type: item.type,
     url: `/api/learning-files/view?scope=training&id=${record.id}&kind=material&index=${index}`,
   }));
-  const hasRecording = typeof record.recording === "string" && Boolean(record.recording.trim());
+  const cleanRecording = validResourceUrl(record.recording);
+  const hasRecording = Boolean(cleanRecording);
   const recording = hasRecording
     ? (protect ? `/api/learning-files/view?scope=training&id=${record.id}&kind=recording` : record.recording!.trim())
     : null;
@@ -76,8 +74,8 @@ export async function POST(request: NextRequest) {
         instructor: instructor || null,
         description: description || null,
         status: status || "completed",
-        materials: materials ? JSON.stringify(materials) : null,
-        recording: recording || null,
+        materials: normalizeTrainingMaterials(materials).length ? JSON.stringify(normalizeTrainingMaterials(materials)) : null,
+        recording: validResourceUrl(recording),
       },
     });
 

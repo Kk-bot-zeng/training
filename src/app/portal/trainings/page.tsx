@@ -6,6 +6,7 @@ import { Alert, Button, Modal, Space, Table, Tag, Spin, Tooltip } from "antd";
 import { FileTextOutlined, PlayCircleOutlined, LinkOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { fetcher, swrConfig } from "@/lib/fetcher";
+import { normalizeTrainingMaterials, validResourceUrl } from "@/lib/training-materials";
 
 type Material = { name: string; url: string; type?: string };
 type TrainingRecord = {
@@ -22,13 +23,7 @@ const statusLabels = { pending: "待开始", ongoing: "进行中", completed: "�
 const statusColors = { pending: "default", ongoing: "processing", completed: "success" };
 
 function parseMaterials(value: string | null): Material[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((material) => material?.url?.trim()) : [];
-  } catch {
-    return [];
-  }
+  return normalizeTrainingMaterials(value) as Material[];
 }
 
 export default function MyTrainingsPage() {
@@ -54,7 +49,7 @@ export default function MyTrainingsPage() {
       title: "课件", dataIndex: "materials", key: "materials", minWidth: 220,
       render: (value: string | null) => {
         const materials = parseMaterials(value);
-        if (!materials.length) return <span style={{ color: "#9aa9b2" }}>暂未上传</span>;
+        if (!materials.length) return <Tag>无</Tag>;
         return (
           <Space size={[6, 6]} wrap>
             {materials.map((material, index) => material.url ? (
@@ -70,9 +65,9 @@ export default function MyTrainingsPage() {
     },
     {
       title: "录屏", dataIndex: "recording", key: "recording", width: 130,
-      render: (recording: string | null) => recording?.trim() ? (
-        <Button type="link" icon={<PlayCircleOutlined />} onClick={() => setPreview({ title: "培训录屏", url: recording, video: true })}>观看录屏</Button>
-      ) : <span style={{ color: "#9aa9b2" }}>暂未上传</span>,
+      render: (recording: string | null) => validResourceUrl(recording) ? (
+        <Button type="link" icon={<PlayCircleOutlined />} onClick={() => setPreview({ title: "培训录屏", url: recording!, video: true })}>观看录屏</Button>
+      ) : <Tag>无</Tag>,
     },
   ];
 

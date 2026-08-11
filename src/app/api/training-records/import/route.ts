@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { getAuthAdmin } from "@/lib/auth";
+import { validResourceUrl } from "@/lib/training-materials";
 
 const REQUIRED_HEADERS = ["培训主题", "培训对象", "培训时间", "需求发起人"];
 const ALL_HEADERS = ["培训主题", "培训对象", "培训时间", "需求发起人", "培训形式", "参训人数", "讲师", "需求描述", "需求状态", "课件", "培训录屏"];
@@ -70,13 +71,13 @@ export async function POST(request: NextRequest) {
       if (status && !statusMap[status]) { errors.push(`第${rowNo}行：需求状态只能填写“待开始、进行中、已完成”`); continue; }
       if (count < 0) { errors.push(`第${rowNo}行：参训人数必须是大于或等于 0 的整数`); continue; }
 
-      const links = materialsText.split("|").map((item) => item.trim()).filter(Boolean);
+      const links = materialsText.split("|").map(validResourceUrl).filter((url): url is string => Boolean(url));
       const materials = links.length ? JSON.stringify(links.map((url, linkIndex) => ({ name: `课件${linkIndex + 1}`, url, type: "link" }))) : null;
       try {
         await prisma.trainingRecord.create({ data: {
           topic, target, date: trainingDate, initiator, format: formatMap[format] || "offline",
           participantCount: count, instructor: instructor || null, description: description || null,
-          status: statusMap[status] || "completed", materials, recording: recording || null,
+          status: statusMap[status] || "completed", materials, recording: validResourceUrl(recording),
         } });
         created++;
       } catch { errors.push(`第${rowNo}行：创建失败`); }

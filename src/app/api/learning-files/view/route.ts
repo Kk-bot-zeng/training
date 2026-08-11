@@ -5,19 +5,9 @@ import { Readable } from "stream";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeTrainingMaterials, validResourceUrl } from "@/lib/training-materials";
 
 export const runtime = "nodejs";
-
-type Material = { name?: string; url?: string; type?: string };
-
-function materials(value: string | null | undefined): Material[] {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function contentType(url: string) {
   const extension = path.extname(new URL(url).pathname).toLowerCase();
@@ -57,7 +47,7 @@ async function resolveAuthorizedUrl(request: NextRequest) {
   if (scope === "training") {
     const record = await prisma.trainingRecord.findUnique({ where: { id }, select: { recording: true, materials: true } });
     if (!record) return null;
-    return kind === "recording" ? record.recording : materials(record.materials)[index]?.url;
+    return kind === "recording" ? validResourceUrl(record.recording) : normalizeTrainingMaterials(record.materials)[index]?.url;
   }
 
   const assignment = await prisma.learningAssignment.findFirst({
@@ -65,7 +55,7 @@ async function resolveAuthorizedUrl(request: NextRequest) {
     include: { task: { select: { recording: true, materials: true } } },
   });
   if (!assignment) return null;
-  return kind === "recording" ? assignment.task.recording : materials(assignment.task.materials)[index]?.url;
+  return kind === "recording" ? validResourceUrl(assignment.task.recording) : normalizeTrainingMaterials(assignment.task.materials)[index]?.url;
 }
 
 export async function GET(request: NextRequest) {

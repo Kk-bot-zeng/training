@@ -5,6 +5,7 @@ import { Table, Button, Drawer, Form, Input, Select, DatePicker, InputNumber, Sp
 import { PlusOutlined, EditOutlined, DeleteOutlined, ImportOutlined, EyeOutlined, LinkOutlined, PlayCircleOutlined, FileTextOutlined, UploadOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { uploadPresigned } from "@vercel/blob/client";
+import { normalizeTrainingMaterials, validResourceUrl } from "@/lib/training-materials";
 
 const formatLabels: Record<string, string> = { online: "线上", offline: "线下", hybrid: "混合" };
 const formatColors: Record<string, string> = { online: "blue", offline: "green", hybrid: "purple" };
@@ -12,9 +13,9 @@ const statusLabels: Record<string, string> = { pending: "待开始", ongoing: "�
 const statusColors: Record<string, string> = { pending: "default", ongoing: "processing", completed: "success" };
 
 function validMaterials(value: string | null) {
-  try { const items = JSON.parse(value || "[]"); return Array.isArray(items) ? items.filter((item) => item?.url?.trim()) : []; } catch { return []; }
+  return normalizeTrainingMaterials(value);
 }
-function hasRecording(value: string | null) { return Boolean(value?.trim()); }
+function hasRecording(value: string | null) { return Boolean(validResourceUrl(value)); }
 
 export default function TrainingRecordsPage() {
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
@@ -174,9 +175,9 @@ export default function TrainingRecordsPage() {
     { title: "讲师", dataIndex: "instructor", key: "instructor", width: 80, render: (v: string | null) => v || "-" },
     { title: "状态", dataIndex: "status", key: "status", width: 90, render: (s: string) => <Tag color={statusColors[s]}>{statusLabels[s]}</Tag> },
     { title: "课件", dataIndex: "materials", key: "materials", width: 80, render: (m: string | null) => {
-        const arr = validMaterials(m); return arr.length ? <Tag icon={<FileTextOutlined />} color="orange">{arr.length}个</Tag> : <span style={{ color: "#d1d5db" }}>-</span>;
+        const arr = validMaterials(m); return arr.length ? <Tag icon={<FileTextOutlined />} color="orange">{arr.length}个</Tag> : <Tag>无</Tag>;
       }},
-    { title: "录屏", dataIndex: "recording", key: "recording", width: 70, render: (r: string | null) => hasRecording(r) ? <Tag icon={<PlayCircleOutlined />} color="red">有</Tag> : <span style={{ color: "#d1d5db" }}>-</span> },
+    { title: "录屏", dataIndex: "recording", key: "recording", width: 70, render: (r: string | null) => hasRecording(r) ? <Tag icon={<PlayCircleOutlined />} color="red">有</Tag> : <Tag>无</Tag> },
     { title: "操作", key: "actions", width: 140, render: (_: unknown, r: Record<string, unknown>) => (
         <Space size="small">
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => { setDetailRecord(r); setDetailOpen(true); }}>详情</Button>
@@ -303,7 +304,7 @@ export default function TrainingRecordsPage() {
               <Descriptions.Item label="需求描述">{(detailRecord.description as string) || "-"}</Descriptions.Item>
             </Descriptions>
 
-{(detailRecord.recording as string) && (
+{hasRecording(detailRecord.recording as string | null) && (
               <div style={{ marginTop: 20, padding: 16, background: "#fef2f2", borderRadius: 12 }}>
                 <h4 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 600, color: "#991b1b" }}>
                   <PlayCircleOutlined style={{ marginRight: 6 }} />培训录屏
@@ -318,7 +319,7 @@ export default function TrainingRecordsPage() {
             {/* 课件 */}
             {(detailRecord.materials as string) && (() => {
               try {
-                const mats = JSON.parse(detailRecord.materials as string) as { name: string; url: string; type?: string }[];
+                const mats = validMaterials(detailRecord.materials as string);
                 if (!mats.length) return null;
                 return (
                   <div style={{ marginTop: 20, padding: 16, background: "#fff7ed", borderRadius: 12 }}>
