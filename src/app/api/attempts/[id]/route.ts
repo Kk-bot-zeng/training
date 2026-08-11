@@ -19,6 +19,25 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!attempt || (user.role !== "admin" && attempt.employeeId !== user.id)) {
       return NextResponse.json({ success: false, message: "记录不存在" }, { status: 404 });
     }
+    if (user.role === "employee") {
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...attempt,
+          paper: {
+            ...attempt.paper,
+            paperQuestions: attempt.paper.paperQuestions.map(({ question, ...paperQuestion }) => ({
+              ...paperQuestion,
+              question: {
+                id: question.id, type: question.type, content: question.content,
+                options: question.options, score: question.score,
+                productModel: question.productModel, category: question.category, difficulty: question.difficulty,
+              },
+            })),
+          },
+        },
+      });
+    }
     return NextResponse.json({ success: true, data: attempt });
   } catch (e: unknown) {
     if (e instanceof Error && e.message === "Unauthorized") return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });

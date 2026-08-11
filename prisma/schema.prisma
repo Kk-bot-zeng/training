@@ -285,4 +285,5 @@ model ExamAttempt {
 
   @@unique([paperId, employeeId, id])
   @@index([employeeId, status])
+  @@index([paperId, employeeId, status])
 }

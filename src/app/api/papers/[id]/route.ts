@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin, getAuthUser } from "@/lib/auth";
 
+const employeePaperCache = new Map<number, { data: Record<string, unknown>; expiresAt: number }>();
+
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
     const { id } = await params;
+    const paperId = parseInt(id);
+    if (user.role === "employee") {
+      const cached = employeePaperCache.get(paperId);
+      if (cached && cached.expiresAt > Date.now()) return NextResponse.json({ success: true, data: cached.data });
+    }
     const paper = await prisma.examPaper.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: paperId },
       include: {
         paperQuestions: { include: { question: true }, orderBy: { order: "asc" } },
         _count: { select: { attempts: true } },
@@ -19,11 +26,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       if (paper.status !== "published") return NextResponse.json({ success: false, message: "该试卷尚未发布或已关闭" }, { status: 403 });
       if (paper.startTime && paper.startTime.getTime() > now) return NextResponse.json({ success: false, message: "考试尚未开始" }, { status: 403 });
       if (paper.endTime && paper.endTime.getTime() < now) return NextResponse.json({ success: false, message: "考试已经结束" }, { status: 403 });
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...paper,
-          paperQuestions: paper.paperQuestions.map(({ question, ...paperQuestion }) => ({
+      const employeeData = {
+        ...paper,
+        paperQuestions: paper.paperQuestions.map(({ question, ...paperQuestion }) => ({
             ...paperQuestion,
             question: {
               id: question.id, type: question.type, content: question.content,
@@ -31,8 +36,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
               productModel: question.productModel, category: question.category, difficulty: question.difficulty,
             },
           })),
-        },
-      });
+      };
+      employeePaperCache.set(paperId, { data: employeeData, expiresAt: Date.now() + 30_000 });
+      if (employeePaperCache.size > 20) employeePaperCache.delete(employeePaperCache.keys().next().value!);
+      return NextResponse.json({ success: true, data: employeeData });
     }
     return NextResponse.json({ success: true, data: paper });
   } catch (e) { console.error(e); return NextResponse.json({ success: false, message: "获取失败" }, { status: 500 }); }
@@ -93,6 +100,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       return tx.examPaper.update({ where: { id: paperId }, data });
     });
+    employeePaperCache.delete(paperId);
     return NextResponse.json({ success: true, data: paper });
   } catch (e) { console.error(e); return NextResponse.json({ success: false, message: "更新失败" }, { status: 500 }); }
 }
@@ -106,6 +114,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       prisma.examAttempt.deleteMany({ where: { paperId } }),
       prisma.examPaper.delete({ where: { id: paperId } }),
     ]);
+    employeePaperCache.delete(paperId);
     return NextResponse.json({ success: true, message: "删除成功" });
   } catch (e) { console.error(e); return NextResponse.json({ success: false, message: "删除失败" }, { status: 500 }); }
 }

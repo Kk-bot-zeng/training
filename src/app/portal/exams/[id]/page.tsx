@@ -16,6 +16,8 @@ export default function ExamTakingPage() {
   const [paper, setPaper] = useState<Record<string, unknown> | null>(null);
   const [attempt, setAttempt] = useState<Record<string, unknown> | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [markedQuestions, setMarkedQuestions] = useState<Record<number, boolean>>({});
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -24,6 +26,10 @@ export default function ExamTakingPage() {
   const [showWarning, setShowWarning] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const submittingRef = useRef(false);
+  const answersRef = useRef<Record<number, string>>({});
+  const attemptIdRef = useRef<number | null>(null);
+  const lastSavedAnswersRef = useRef("");
+  const saveInFlightRef = useRef(false);
 
   // Load paper and start attempt
   useEffect(() => {
@@ -39,6 +45,7 @@ export default function ExamTakingPage() {
         const attData = await attRes.json();
         if (attData.success) {
           setAttempt(attData.data);
+          attemptIdRef.current = Number(attData.data.id);
           setSwitchCount(Number(attData.data.screenSwitches) || 0);
           const elapsed = Math.max(0, Math.floor((Date.now() - new Date(attData.data.startTime).getTime()) / 1000));
           setTimeLeft(Math.max(1, paperData.data.duration * 60 - elapsed));
@@ -48,6 +55,8 @@ export default function ExamTakingPage() {
               const map: Record<number, string> = {};
               for (const a of prev) map[a.questionId] = a.userAnswer;
               setAnswers(map);
+              answersRef.current = map;
+              lastSavedAnswersRef.current = JSON.stringify(map);
             } catch {}
           }
         } else {
@@ -59,6 +68,35 @@ export default function ExamTakingPage() {
     };
     init();
   }, [paperId, router]);
+
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  const autosaveAnswers = useCallback(async (keepalive = false) => {
+    const attemptId = attemptIdRef.current;
+    if (!attemptId || submittingRef.current || saveInFlightRef.current) return;
+    const snapshot = JSON.stringify(answersRef.current);
+    if (snapshot === lastSavedAnswersRef.current) return;
+    saveInFlightRef.current = true;
+    try {
+      const answerList = Object.entries(answersRef.current).map(([questionId, userAnswer]) => ({ questionId: Number(questionId), userAnswer }));
+      const response = await fetch("/api/attempts", {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, keepalive,
+        body: JSON.stringify({ action: "autosave", attemptId, answers: answerList }),
+      });
+      const data = await response.json();
+      if (data.success) { lastSavedAnswersRef.current = snapshot; setLastSavedAt(new Date()); }
+    } catch {
+      // Keep the dirty snapshot; the next interval or screen switch will retry it.
+    } finally { saveInFlightRef.current = false; }
+  }, []);
+
+  useEffect(() => {
+    if (!attempt?.id) return;
+    const timer = window.setInterval(() => { void autosaveAnswers(); }, 10_000);
+    const handlePageHide = () => { void autosaveAnswers(true); };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => { window.clearInterval(timer); window.removeEventListener("pagehide", handlePageHide); };
+  }, [attempt?.id, autosaveAnswers]);
 
   // Timer
   useEffect(() => {
@@ -82,16 +120,27 @@ export default function ExamTakingPage() {
         questionId: q.questionId,
         userAnswer: answers[q.questionId as number] || "",
       })) : [];
-      const res = await fetch("/api/attempts", {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attemptId: attempt?.id, answers: answerArr, screenSwitches: recordedSwitches ?? switchCount }),
-      });
-      const data = await res.json();
+      let data: { success?: boolean; message?: string } = {};
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          const res = await fetch("/api/attempts", {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ attemptId: attempt?.id, answers: answerArr, screenSwitches: recordedSwitches ?? switchCount }),
+          });
+          data = await res.json();
+          if (data.success || res.status < 500) break;
+        } catch { data = { success: false, message: "网络连接不稳定" }; }
+        await new Promise((resolve) => window.setTimeout(resolve, 800 * (retry + 1)));
+      }
       if (data.success) {
+        lastSavedAnswersRef.current = JSON.stringify(answers);
         message.success(auto ? "⏰ 时间到，已自动交卷" : "交卷成功！");
         router.push("/portal/scores");
-      } else { submittingRef.current = false; message.error(data.message); }
-    } catch { submittingRef.current = false; message.error("提交失败"); } finally { setSubmitting(false); }
+      } else {
+        submittingRef.current = false;
+        message.error(`${data.message || "提交失败"}，答案仍保留，请再次点击交卷`, 6);
+      }
+    } catch { submittingRef.current = false; message.error("提交失败，答案仍保留，请再次点击交卷", 6); } finally { setSubmitting(false); }
   }, [submitting, answers, attempt, paper, switchCount, router]);
 
   // Both desktop window blur and mobile app/background switching count as leaving the exam.
@@ -108,7 +157,7 @@ export default function ExamTakingPage() {
       try {
         const response = await fetch("/api/attempts", {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attemptId: attempt.id }),
+          body: JSON.stringify({ attemptId: attempt.id, answers: Object.entries(answersRef.current).map(([questionId, userAnswer]) => ({ questionId: Number(questionId), userAnswer })) }),
           keepalive: true,
         });
         const data = await response.json();
@@ -153,6 +202,7 @@ export default function ExamTakingPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: timeLeft < 300 ? "#ef4444" : "#374151" }}>
             <ClockCircleOutlined /><span style={{ fontWeight: 700, fontSize: 18, fontFamily: "monospace" }}>{formatTime(timeLeft)}</span>
           </div>
+          {lastSavedAt && <span style={{ color: "#94a3b8", fontSize: 12 }}>已自动保存 {lastSavedAt.toLocaleTimeString("zh-CN", { hour12: false })}</span>}
           <Button danger type="primary" onClick={() => { Modal.confirm({ title: "确认交卷？", content: `已答 ${answeredCount}/${questions.length} 题，未答题目计0分`, onOk: () => handleSubmit(false) }); }}
             style={{ borderRadius: 8 }} loading={submitting}>交卷</Button>
         </div>
@@ -206,8 +256,8 @@ export default function ExamTakingPage() {
 
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16 }}>
             <Button disabled={currentIdx === 0} onClick={() => setCurrentIdx(prev => prev - 1)} style={{ borderRadius: 10 }}>上一题</Button>
-            <Button onClick={() => setAnswers(prev => ({ ...prev, [q?.id as number]: answers[q?.id as number] ? "" : "__marked__" }))}
-              style={{ borderRadius: 10 }}>{answers[q?.id as number] === "__marked__" ? "取消标记" : "⏺ 标记"}</Button>
+            <Button onClick={() => setMarkedQuestions((previous) => ({ ...previous, [q?.id as number]: !previous[q?.id as number] }))}
+              style={{ borderRadius: 10 }}>{markedQuestions[q?.id as number] ? "取消标记" : "⏺ 标记"}</Button>
             <Button type="primary" onClick={() => currentIdx < questions.length - 1 ? setCurrentIdx(prev => prev + 1) : handleSubmit(false)}
               style={{ borderRadius: 10 }}>{currentIdx < questions.length - 1 ? "下一题" : "完成交卷"}</Button>
           </div>
@@ -221,8 +271,8 @@ export default function ExamTakingPage() {
               {questions.map((pq, i) => {
                 const qid = pq.questionId as number;
                 const ans = answers[qid];
-                const isAnswered = ans && ans !== "__marked__";
-                const isMarked = ans === "__marked__";
+                const isAnswered = Boolean(ans?.trim());
+                const isMarked = Boolean(markedQuestions[qid]);
                 const isCurrent = i === currentIdx;
                 return (
                   <div key={i} onClick={() => setCurrentIdx(i)}
