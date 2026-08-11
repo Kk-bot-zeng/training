@@ -17,6 +17,7 @@
     "@vercel/blob": "^2.6.1",
     "@vercel/oidc": "^3.8.0",
     "antd": "^6.5.0",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "dayjs": "^1.11.21",
     "dotenv": "^17.4.2",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",

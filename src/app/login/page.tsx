@@ -11,24 +11,38 @@ export default function LoginPage() {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const data = await res.json();
+      let data: { success?: boolean; message?: string; data?: { role: string } } = {};
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values), signal: AbortSignal.timeout(15_000),
+          });
+          data = await res.json();
+          if (data.success || res.status < 500) break;
+        } catch {
+          data = { success: false, message: "网络连接不稳定，正在重试" };
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 800 * (retry + 1)));
+      }
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.data));
-        const session = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
-        if (!session.ok) {
+        let sessionOk = false;
+        for (let retry = 0; retry < 3 && !sessionOk; retry++) {
+          try {
+            const session = await fetch("/api/auth/me", { credentials: "include", cache: "no-store", signal: AbortSignal.timeout(10_000) });
+            sessionOk = session.ok;
+          } catch {}
+          if (!sessionOk) await new Promise((resolve) => window.setTimeout(resolve, 500 * (retry + 1)));
+        }
+        if (!sessionOk) {
           localStorage.removeItem("user");
           throw new Error("登录状态未保存，请检查浏览器是否允许 Cookie 后重试");
         }
         message.success("登录成功");
         const nextPath = new URLSearchParams(window.location.search).get("next");
         const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
-        window.location.assign(safeNextPath || (data.data.role === "admin" ? "/admin" : "/portal"));
+        window.location.assign(safeNextPath || (data.data?.role === "admin" ? "/admin" : "/portal"));
       }
       else message.error(data.message || "登录失败");
     } catch (error) { message.error(error instanceof Error ? error.message : "网络错误"); }

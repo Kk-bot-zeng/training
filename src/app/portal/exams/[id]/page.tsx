@@ -9,6 +9,20 @@ import { ClockCircleOutlined, WarningOutlined } from "@ant-design/icons";
 const typeLabels: Record<string, string> = { single: "单选题", multi: "多选题", judge: "判断题", essay: "问答题" };
 const MAX_SCREEN_SWITCHES = 3;
 
+async function fetchJsonWithRetry(url: string, init?: RequestInit, retries = 3) {
+  let lastError: unknown;
+  for (let retry = 0; retry < retries; retry++) {
+    try {
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
+      const data = await response.json();
+      if (response.ok || response.status < 500) return { response, data };
+      lastError = new Error(data.message || "服务器暂时繁忙");
+    } catch (error) { lastError = error; }
+    await new Promise((resolve) => window.setTimeout(resolve, 800 * (retry + 1)));
+  }
+  throw lastError instanceof Error ? lastError : new Error("网络连接失败");
+}
+
 export default function ExamTakingPage() {
   const params = useParams();
   const router = useRouter();
@@ -35,14 +49,12 @@ export default function ExamTakingPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const paperRes = await fetch(`/api/papers/${paperId}`);
-        const paperData = await paperRes.json();
+        const { data: paperData } = await fetchJsonWithRetry(`/api/papers/${paperId}`, undefined, 3);
         if (!paperData.success) { message.error(paperData.message || "试卷当前不可用"); router.push("/portal/exams"); return; }
         setPaper(paperData.data);
 
         // Start or resume attempt
-        const attRes = await fetch("/api/attempts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: parseInt(paperId) }) });
-        const attData = await attRes.json();
+        const { data: attData } = await fetchJsonWithRetry("/api/attempts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paperId: parseInt(paperId) }) }, 3);
         if (attData.success) {
           setAttempt(attData.data);
           attemptIdRef.current = Number(attData.data.id);
@@ -126,6 +138,7 @@ export default function ExamTakingPage() {
           const res = await fetch("/api/attempts", {
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ attemptId: attempt?.id, answers: answerArr, screenSwitches: recordedSwitches ?? switchCount }),
+            signal: AbortSignal.timeout(15_000),
           });
           data = await res.json();
           if (data.success || res.status < 500) break;
