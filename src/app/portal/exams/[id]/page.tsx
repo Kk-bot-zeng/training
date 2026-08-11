@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps */
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, message, Spin } from "antd";
+import { Alert, Button, Card, Radio, Checkbox, Input, Tag, Modal, Progress, Result, message, Spin } from "antd";
 import { ClockCircleOutlined, WarningOutlined } from "@ant-design/icons";
 
 const typeLabels: Record<string, string> = { single: "单选题", multi: "多选题", judge: "判断题", essay: "问答题" };
@@ -38,6 +38,7 @@ export default function ExamTakingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [switchCount, setSwitchCount] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState<{ score: number | null } | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const submittingRef = useRef(false);
   const answersRef = useRef<Record<number, string>>({});
@@ -103,12 +104,12 @@ export default function ExamTakingPage() {
   }, []);
 
   useEffect(() => {
-    if (!attempt?.id) return;
+    if (!attempt?.id || submissionResult) return;
     const timer = window.setInterval(() => { void autosaveAnswers(); }, 10_000);
     const handlePageHide = () => { void autosaveAnswers(true); };
     window.addEventListener("pagehide", handlePageHide);
     return () => { window.clearInterval(timer); window.removeEventListener("pagehide", handlePageHide); };
-  }, [attempt?.id, autosaveAnswers]);
+  }, [attempt?.id, autosaveAnswers, submissionResult]);
 
   // Timer
   useEffect(() => {
@@ -132,7 +133,7 @@ export default function ExamTakingPage() {
         questionId: q.questionId,
         userAnswer: answers[q.questionId as number] || "",
       })) : [];
-      let data: { success?: boolean; message?: string } = {};
+      let data: { success?: boolean; message?: string; data?: { score?: number | null } } = {};
       for (let retry = 0; retry < 3; retry++) {
         try {
           const res = await fetch("/api/attempts", {
@@ -147,8 +148,8 @@ export default function ExamTakingPage() {
       }
       if (data.success) {
         lastSavedAnswersRef.current = JSON.stringify(answers);
+        setSubmissionResult({ score: data.data?.score ?? null });
         message.success(auto ? "⏰ 时间到，已自动交卷" : "交卷成功！");
-        router.push("/portal/scores");
       } else {
         submittingRef.current = false;
         message.error(`${data.message || "提交失败"}，答案仍保留，请再次点击交卷`, 6);
@@ -159,7 +160,7 @@ export default function ExamTakingPage() {
   // Both desktop window blur and mobile app/background switching count as leaving the exam.
   // The debounce prevents one physical switch from being counted twice by blur + visibilitychange.
   useEffect(() => {
-    if (!attempt?.id || submittingRef.current) return;
+    if (!attempt?.id || submittingRef.current || submissionResult) return;
     let lastRecordedAt = 0;
     let recording = false;
     const recordSwitch = async () => {
@@ -192,10 +193,28 @@ export default function ExamTakingPage() {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("blur", handleBlur);
     };
-  }, [attempt?.id, handleSubmit]);
+  }, [attempt?.id, handleSubmit, submissionResult]);
 
   if (loading) return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" /></div>;
   if (!paper) return null;
+
+  if (submissionResult) {
+    return (
+      <Card style={{ maxWidth: 680, margin: "8vh auto 0", borderRadius: 16 }}>
+        <Result
+          status="success"
+          title="交卷成功"
+          subTitle={submissionResult.score === null
+            ? "答卷已安全保存。如包含问答题，成绩将在管理员批改后更新。"
+            : `本次客观题得分：${submissionResult.score} 分，答卷已安全保存。`}
+          extra={[
+            <Button type="primary" key="scores" onClick={() => router.replace("/portal/scores")}>查看成绩</Button>,
+            <Button key="exams" onClick={() => router.replace("/portal/exams")}>返回考试列表</Button>,
+          ]}
+        />
+      </Card>
+    );
+  }
 
   const questions = (paper.paperQuestions as Record<string, unknown>[]) || [];
   const currentQ = questions[currentIdx];
