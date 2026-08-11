@@ -54,6 +54,7 @@ export default function ExamPapersPage() {
   const [selectedAttempt, setSelectedAttempt] = useState<ResultAttempt | null>(null);
   const [gradeScores, setGradeScores] = useState<Record<number, number>>({});
   const [grading, setGrading] = useState(false);
+  const [returningAttemptId, setReturningAttemptId] = useState<number | null>(null);
   const [qrPaper, setQrPaper] = useState<Record<string, unknown> | null>(null);
   const [questionModelFilter, setQuestionModelFilter] = useState<string>();
   const [smartOpen, setSmartOpen] = useState(false);
@@ -176,6 +177,20 @@ export default function ExamPapersPage() {
     }
   };
 
+  const returnAttempt = async (attempt: ResultAttempt, learner: LearnerResult) => {
+    if (!resultsData) return;
+    setReturningAttemptId(attempt.id);
+    try {
+      const res = await fetch(`/api/attempts/${attempt.id}`, { method: "PATCH" });
+      const data = await res.json();
+      if (!data.success) return message.error(data.message || "打回答卷失败");
+      message.success(`已打回 ${learner.name} 的答卷，学员可以重新考试`);
+      await handleResults(resultsData.paper);
+    } finally {
+      setReturningAttemptId(null);
+    }
+  };
+
   const columns = [
     { title: "试卷标题", dataIndex: "title", key: "title", ellipsis: true, width: 220 },
     { title: "类型", dataIndex: "type", key: "type", width: 120, render: (t: string) => <Tag color={t === "timed" ? "blue" : "green"}>{typeLabels[t]}</Tag> },
@@ -280,7 +295,7 @@ export default function ExamPapersPage() {
               <Col span={6}><Card><Statistic title="及格分" value={resultsData.paper.passScore as number} suffix="分" /></Card></Col>
             </Row>
             <Table<LearnerResult> dataSource={resultsData.results} rowKey="employeeId"
-              locale={{ emptyText: "暂无学员提交记录" }}
+              locale={{ emptyText: "暂无学员提交记录" }} scroll={{ x: 900 }}
               columns={[
                 { title: "学员", dataIndex: "name", key: "name" },
                 { title: "工号", dataIndex: "employeeNo", key: "employeeNo" },
@@ -292,12 +307,22 @@ export default function ExamPapersPage() {
               expandable={{
                 expandedRowRender: (learner) => (
                   <Table<ResultAttempt> dataSource={learner.attempts} rowKey="id" pagination={false} size="small"
+                    scroll={{ x: 850 }}
                     columns={[
                       { title: "次数", key: "index", render: (_value, _record, index) => `第 ${learner.attempts.length - index} 次` },
                       { title: "成绩", key: "score", render: (_value, attempt) => `${attempt.score ?? 0} / ${attempt.totalScore}` },
                       { title: "错题数", dataIndex: "wrongCount", key: "wrongCount", render: (count: number) => <Tag color={count ? "red" : "green"}>{count} 题</Tag> },
                       { title: "提交时间", dataIndex: "endTime", key: "endTime", render: (time: string) => dayjs(time).format("YYYY-MM-DD HH:mm:ss") },
-                      { title: "答题详情", key: "detail", render: (_value, attempt) => <Button type="link" onClick={() => openAttemptDetail(attempt)}>查看每道题/评分</Button> },
+                      { title: "操作", key: "actions", width: 250, render: (_value, attempt) => <Space wrap size={0}>
+                        <Button type="link" onClick={() => openAttemptDetail(attempt)}>查看每道题/评分</Button>
+                        <Popconfirm
+                          title={`确认打回 ${learner.name} 的这次答卷？`}
+                          description="打回后本次成绩暂不计入统计，学员将获得一次重新考试机会。"
+                          okText="确认打回" cancelText="取消" okButtonProps={{ danger: true }}
+                          onConfirm={() => returnAttempt(attempt, learner)}>
+                          <Button type="link" danger loading={returningAttemptId === attempt.id}>打回重考</Button>
+                        </Popconfirm>
+                      </Space> },
                     ]} />
                 ),
               }} />

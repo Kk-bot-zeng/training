@@ -33,7 +33,7 @@ export async function GET() {
   try {
     const user = await getAuthUser();
     const attempts = await prisma.examAttempt.findMany({
-      where: user.role === "employee" ? { employeeId: user.id } : undefined,
+      where: user.role === "employee" ? { employeeId: user.id, status: { in: ["submitted", "graded"] } } : undefined,
       include: {
         paper: { select: { id: true, title: true, passScore: true, totalScore: true } },
       },
@@ -78,6 +78,17 @@ export async function POST(request: NextRequest) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${paperId}, ${user.id})`;
       const paper = await tx.examPaper.findUnique({ where: { id: paperId } });
       if (!paper || paper.status !== "published") return { error: "试卷不可用", status: 400 } as const;
+      const returned = await tx.examAttempt.findFirst({
+        where: { paperId, employeeId: user.id, status: "returned" },
+        orderBy: { createdAt: "desc" },
+      });
+      if (returned) {
+        const attempt = await tx.examAttempt.update({
+          where: { id: returned.id },
+          data: { status: "in_progress", startTime: new Date(), endTime: null, score: null, answers: null, screenSwitches: 0, totalScore: paper.totalScore },
+        });
+        return { attempt } as const;
+      }
       const now = Date.now();
       if (paper.startTime && paper.startTime.getTime() > now) return { error: "考试尚未开始", status: 403 } as const;
       if (paper.endTime && paper.endTime.getTime() < now) return { error: "考试已经结束", status: 403 } as const;

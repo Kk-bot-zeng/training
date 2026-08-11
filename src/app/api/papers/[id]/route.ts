@@ -11,7 +11,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const paperId = parseInt(id);
     if (user.role === "employee") {
       const cached = employeePaperCache.get(paperId);
-      if (cached && cached.expiresAt > Date.now()) return NextResponse.json({ success: true, data: cached.data });
+      if (cached && cached.expiresAt > Date.now()) {
+        const now = Date.now();
+        const startTime = cached.data.startTime ? new Date(cached.data.startTime as string).getTime() : null;
+        const endTime = cached.data.endTime ? new Date(cached.data.endTime as string).getTime() : null;
+        const withinWindow = (!startTime || startTime <= now) && (!endTime || endTime >= now);
+        if (withinWindow) return NextResponse.json({ success: true, data: cached.data });
+        const returned = await prisma.examAttempt.findFirst({ where: { paperId, employeeId: user.id, status: "returned" }, select: { id: true } });
+        if (returned) return NextResponse.json({ success: true, data: cached.data });
+        return NextResponse.json({ success: false, message: startTime && startTime > now ? "考试尚未开始" : "考试已经结束" }, { status: 403 });
+      }
     }
     const paper = await prisma.examPaper.findUnique({
       where: { id: paperId },
@@ -24,8 +33,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (user.role === "employee") {
       const now = Date.now();
       if (paper.status !== "published") return NextResponse.json({ success: false, message: "该试卷尚未发布或已关闭" }, { status: 403 });
-      if (paper.startTime && paper.startTime.getTime() > now) return NextResponse.json({ success: false, message: "考试尚未开始" }, { status: 403 });
-      if (paper.endTime && paper.endTime.getTime() < now) return NextResponse.json({ success: false, message: "考试已经结束" }, { status: 403 });
+      const outsideWindow = Boolean((paper.startTime && paper.startTime.getTime() > now) || (paper.endTime && paper.endTime.getTime() < now));
+      const returned = outsideWindow
+        ? await prisma.examAttempt.findFirst({ where: { paperId, employeeId: user.id, status: "returned" }, select: { id: true } })
+        : null;
+      if (!returned && paper.startTime && paper.startTime.getTime() > now) return NextResponse.json({ success: false, message: "考试尚未开始" }, { status: 403 });
+      if (!returned && paper.endTime && paper.endTime.getTime() < now) return NextResponse.json({ success: false, message: "考试已经结束" }, { status: 403 });
       const employeeData = {
         ...paper,
         paperQuestions: paper.paperQuestions.map(({ question, ...paperQuestion }) => ({

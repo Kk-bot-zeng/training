@@ -22,14 +22,16 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: papers.map(({ attempts, ...paper }) => {
-            const completedAttempts = attempts.filter((attempt) => attempt.status === "submitted").length;
+            const completedAttempts = attempts.filter((attempt) => ["submitted", "graded"].includes(attempt.status)).length;
+            const hasReturnedAttempt = attempts.some((attempt) => attempt.status === "returned");
             const now = Date.now();
             const withinWindow = (!paper.startTime || paper.startTime.getTime() <= now) && (!paper.endTime || paper.endTime.getTime() >= now);
             return {
               ...paper,
               completedAttempts,
-              canAttempt: withinWindow && (paper.allowRetake || completedAttempts === 0),
-              availability: !withinWindow ? (paper.startTime && paper.startTime.getTime() > now ? "not_started" : "ended") : "available",
+              returnedForRetake: hasReturnedAttempt,
+              canAttempt: hasReturnedAttempt || (withinWindow && (paper.allowRetake || completedAttempts === 0)),
+              availability: hasReturnedAttempt ? "returned" : !withinWindow ? (paper.startTime && paper.startTime.getTime() > now ? "not_started" : "ended") : "available",
             };
           }),
         });

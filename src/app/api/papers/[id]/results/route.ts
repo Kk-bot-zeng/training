@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
           },
         },
         attempts: {
-          where: { status: "submitted" },
+          where: { status: { in: ["submitted", "graded"] } },
           orderBy: { endTime: "desc" },
           select: {
             id: true,
