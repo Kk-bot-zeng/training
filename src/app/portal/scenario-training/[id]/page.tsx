@@ -74,7 +74,12 @@ export default function ScenarioChat() {
         {sending && <div style={{ color: "#64748b" }}><RobotOutlined /> 客户正在思考…</div>}<div ref={bottom} />
       </div>
       <div style={{ padding: 14, borderTop: "1px solid #e5e7eb" }}>
-        <Space.Compact style={{ width: "100%" }}><Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} value={text} onChange={event => setText(event.target.value)} onPressEnter={event => { if (!event.shiftKey) { event.preventDefault(); send(); } }} placeholder="输入你的销售话术，Enter发送，Shift+Enter换行" /><Button type="primary" icon={<SendOutlined />} loading={sending} onClick={send} style={{ height: "auto" }}>发送</Button></Space.Compact>
+        <Space.Compact style={{ width: "100%" }}><Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} value={text} onChange={event => setText(event.target.value)} onKeyDown={event => {
+          if (event.key !== "Enter" || event.shiftKey) return;
+          const nativeEvent = event.nativeEvent as KeyboardEvent;
+          if (nativeEvent.isComposing || nativeEvent.keyCode === 229) return;
+          event.preventDefault(); event.stopPropagation(); send();
+        }} placeholder="输入你的销售话术，Enter发送，Shift+Enter换行" /><Button type="primary" icon={<SendOutlined />} loading={sending} onClick={send} style={{ height: "auto" }}>发送</Button></Space.Compact>
         <Button block danger loading={grading} onClick={submit} style={{ marginTop: 10 }}>结束演练并生成评分报告</Button>
       </div>
     </Card>
