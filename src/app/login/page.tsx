@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Form, Input, Button, message, Modal, Radio, Space } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
@@ -11,6 +11,11 @@ export default function LoginPage() {
   const [accountChoices, setAccountChoices] = useState<Array<{ id: number; departmentName: string; employeeNo?: string | null }>>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number>();
   const [pendingLogin, setPendingLogin] = useState<{ username: string; password: string }>();
+
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get("error");
+    if (error) message.error(error);
+  }, []);
 
   const fetchWithTimeout = async (input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 15_000) => {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -94,13 +99,14 @@ export default function LoginPage() {
           <p className="login-subtitle">雷鸟培训管理系统</p>
         </div>
 
-        <Form onFinish={onFinish} size="large" layout="vertical">
+        <Form onFinish={onFinish} action="/api/auth/login/browser" method="post" size="large" layout="vertical">
+          <input type="hidden" name="next" value="" />
           <Form.Item name="username" rules={[{ required: true, message: "请输入用户名" }]}>
-            <Input prefix={<UserOutlined style={{ color: "#9ca3af" }} />} placeholder="姓名 / 工号 / 管理员账号"
+            <Input name="username" prefix={<UserOutlined style={{ color: "#9ca3af" }} />} placeholder="姓名 / 工号 / 管理员账号"
               style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
           <Form.Item name="password" rules={[{ required: true, message: "请输入密码" }]}>
-            <Input.Password prefix={<LockOutlined style={{ color: "#9ca3af" }} />} placeholder="密码"
+            <Input.Password name="password" prefix={<LockOutlined style={{ color: "#9ca3af" }} />} placeholder="密码"
               style={{ borderRadius: 10, height: 48 }} />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
