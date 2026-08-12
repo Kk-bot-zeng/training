@@ -124,10 +124,6 @@ export default function QRCodePage() {
         <Text type="secondary" className="block mb-1">
           动态二维码将在 {refreshIn} 秒后自动更新，截图或转发后会失效
         </Text>
-        <Text type="secondary" className="block mb-4 break-all">
-          {checkinUrl}
-        </Text>
-
         <Space className="no-print">
           <Button icon={<ReloadOutlined />} onClick={handleRegenerate}>
             重新生成
