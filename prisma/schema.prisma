@@ -29,9 +29,32 @@ model Employee {
   assignmentSubmissions AssignmentSubmission[]
   learningAssignments   LearningAssignment[]
   passageRecords        PassageRecord[]
+  catcherQuestions      CatcherQuestion[]
 
   @@index([departmentId, status])
   @@index([status, createdAt])
+}
+
+// ========== 捕手计划 ===========
+
+model CatcherQuestion {
+  id           Int       @id @default(autoincrement())
+  employeeId   Int?
+  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  submitterName String
+  departmentName String?
+  productModel String?
+  category     String?
+  question     String
+  answer       String?
+  status       String    @default("pending") // pending/answered/selected/closed
+  source       String    @default("employee") // employee/admin/talking_point
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([employeeId, createdAt])
+  @@index([productModel, category])
 }
 
 // ========== 过堂记录 ==========

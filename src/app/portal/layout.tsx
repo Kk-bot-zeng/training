@@ -16,6 +16,7 @@ const menuItems = [
   { key: "/portal/assignments", icon: <FormOutlined />, label: "我的作业" },
   { key: "/portal/attendance", icon: <CheckCircleOutlined />, label: "我的考勤" },
   { key: "/portal/scores", icon: <BarChartOutlined />, label: "成绩记录" },
+  { key: "/portal/catcher-plan", icon: <FormOutlined />, label: "捕手计划 · 问题反馈" },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {

@@ -42,6 +42,9 @@ const menuItems = [
   { type: "group", label: "作业管理", children: [
     { key: "/admin/assignments", icon: <FormOutlined />, label: "作业管理" },
   ]},
+  { type: "group", label: "捕手计划", children: [
+    { key: "/admin/catcher-plan", icon: <FileTextOutlined />, label: "问答收集和制图" },
+  ]},
 ];
 
 const breadcrumbMap: Record<string, string> = {
@@ -56,6 +59,7 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/training-records": "培训档案",
   "/admin/learning-progress": "培训进度追踪",
   "/admin/assignments": "作业管理",
+  "/admin/catcher-plan": "问答收集和制图",
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
