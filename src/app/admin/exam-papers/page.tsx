@@ -19,6 +19,8 @@ type AttemptDetail = {
   score: number;
   maxScore: number;
   manuallyGraded: boolean;
+  gradingMethod?: string;
+  aiReason?: string;
 };
 
 type ResultAttempt = {
@@ -342,7 +344,7 @@ export default function ExamPapersPage() {
             { title: "学员答案", dataIndex: "userAnswer", key: "userAnswer", render: (answer: string) => answer || "未作答" },
             { title: "正确答案", dataIndex: "correctAnswer", key: "correctAnswer" },
             { title: "结果", key: "result", width: 100, render: (_value, detail) => detail.type === "essay"
-              ? <Tag color={detail.manuallyGraded ? "blue" : "orange"}>{detail.manuallyGraded ? "已评分" : "待评分"}</Tag>
+              ? <Tag color={detail.manuallyGraded ? "blue" : "orange"}>{detail.gradingMethod === "ai" ? "AI已评分" : detail.manuallyGraded ? "人工已评分" : "待评分"}</Tag>
               : <Tag color={detail.isCorrect ? "green" : "red"}>{detail.isCorrect ? "正确" : "错误"}</Tag> },
             { title: "得分", key: "score", width: 150, render: (_value, detail) => detail.type === "essay"
               ? <InputNumber min={0} max={detail.maxScore} value={gradeScores[detail.questionId] || 0}

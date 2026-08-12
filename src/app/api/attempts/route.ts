@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { gradeEssayAnswers } from "@/lib/ai-essay-grader";
 
 function normalizeSingle(value: string): string {
   const normalized = value.trim().toUpperCase();
@@ -171,17 +172,22 @@ export async function PUT(request: NextRequest) {
 
     // Auto-grade
     const questionMap = new Map(attempt.paper.paperQuestions.map(pq => [pq.questionId, pq]));
+    const essayGrades = await gradeEssayAnswers(answers.flatMap((answer: { questionId: number; userAnswer: string }) => {
+      const paperQuestion = questionMap.get(answer.questionId);
+      if (!paperQuestion || paperQuestion.question.type !== "essay") return [];
+      return [{ questionId: answer.questionId, question: paperQuestion.question.content, referenceAnswer: paperQuestion.question.answer, userAnswer: String(answer.userAnswer || ""), maxScore: paperQuestion.score }];
+    }));
     let totalScore = 0;
     const gradedAnswers = answers.map((a: { questionId: number; userAnswer: string }) => {
       const pq = questionMap.get(a.questionId);
       if (!pq) return { ...a, isCorrect: false, score: 0 };
       const q = pq.question;
-      const isCorrect = q.type !== "essay"
-        ? isObjectiveAnswerCorrect(q.type, a.userAnswer, q.answer)
-        : null;
-      const score = isCorrect === true ? pq.score : (isCorrect === false ? 0 : 0);
+      const essayGrade = q.type === "essay" ? essayGrades.get(a.questionId) : undefined;
+      const isCorrect = q.type !== "essay" ? isObjectiveAnswerCorrect(q.type, a.userAnswer, q.answer) : null;
+      const score = essayGrade ? essayGrade.score : (isCorrect === true ? pq.score : 0);
       if (score > 0) totalScore += score;
-      return { questionId: a.questionId, userAnswer: a.userAnswer, isCorrect, score };
+      return { questionId: a.questionId, userAnswer: a.userAnswer, isCorrect, score,
+        ...(essayGrade ? { manuallyGraded: true, gradingMethod: "ai", aiReason: essayGrade.reason, aiConfidence: essayGrade.confidence } : {}) };
     });
 
     const updated = await prisma.examAttempt.updateMany({

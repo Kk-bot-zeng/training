@@ -5,7 +5,7 @@ import { getAuthAdmin } from "@/lib/auth";
 import { createDynamicQrToken } from "@/lib/checkin";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -14,9 +14,12 @@ export async function GET(
     const training = await prisma.training.findUnique({ where: { id: parseInt(id) } });
     if (!training) return NextResponse.json({ success: false, message: "培训不存在" }, { status: 404 });
     const token = await createDynamicQrToken(training.id, training.qrToken);
+    const requestedOrigin = request.nextUrl.searchParams.get("origin");
+    const allowedOrigins = new Set([process.env.NEXT_PUBLIC_BASE_URL, "http://10.68.208.188:8080"].filter(Boolean));
+    const baseUrl = requestedOrigin && allowedOrigins.has(requestedOrigin) ? requestedOrigin : process.env.NEXT_PUBLIC_BASE_URL;
     return NextResponse.json({
       success: true,
-      data: { token, checkinUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${token}`, expiresIn: 90 },
+      data: { token, checkinUrl: `${baseUrl}/checkin/${token}`, expiresIn: 90 },
     });
   } catch (error) {
     console.error("Get dynamic QR error:", error);
