@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Table, Button, Drawer, Form, Input, Select, Switch, InputNumber, DatePicker, Space, Tag, message, Popconfirm, Card, Row, Col, Modal, Statistic } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined, BarChartOutlined, QrcodeOutlined, CopyOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined, BarChartOutlined, QrcodeOutlined, CopyOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { QRCodeSVG } from "qrcode.react";
 import { getBrowserAccessOrigin } from "@/lib/access-origin";
+import { downloadFile } from "@/lib/download";
 
 const typeLabels: Record<string, string> = { timed: "定时考试", practice: "模拟练习" };
 
@@ -58,6 +59,7 @@ export default function ExamPapersPage() {
   const [gradeScores, setGradeScores] = useState<Record<number, number>>({});
   const [grading, setGrading] = useState(false);
   const [returningAttemptId, setReturningAttemptId] = useState<number | null>(null);
+  const [exportingResults, setExportingResults] = useState(false);
   const [qrPaper, setQrPaper] = useState<Record<string, unknown> | null>(null);
   const [questionModelFilter, setQuestionModelFilter] = useState<string>();
   const [smartOpen, setSmartOpen] = useState(false);
@@ -194,6 +196,16 @@ export default function ExamPapersPage() {
     }
   };
 
+  const exportResults = async () => {
+    if (!resultsData) return;
+    setExportingResults(true);
+    try {
+      await downloadFile(`/api/export/exam-results/${resultsData.paper.id}`, `${resultsData.paper.title}-成绩与错题.xlsx`);
+      message.success("成绩与错题已导出");
+    } catch (error) { message.error(error instanceof Error ? error.message : "导出失败"); }
+    finally { setExportingResults(false); }
+  };
+
   const columns = [
     { title: "试卷标题", dataIndex: "title", key: "title", ellipsis: true, width: 220 },
     { title: "类型", dataIndex: "type", key: "type", width: 120, render: (t: string) => <Tag color={t === "timed" ? "blue" : "green"}>{typeLabels[t]}</Tag> },
@@ -291,7 +303,10 @@ export default function ExamPapersPage() {
         onClose={() => { setResultsOpen(false); setSelectedAttempt(null); }}>
         {resultsData && (
           <>
-            <Row gutter={16} style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              <Button type="primary" icon={<DownloadOutlined />} loading={exportingResults} onClick={exportResults}>导出全部成绩与错题</Button>
+            </div>
+            <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
               <Col span={6}><Card><Statistic title="参考学员" value={resultsData.summary.learnerCount} suffix="人" /></Card></Col>
               <Col span={6}><Card><Statistic title="完成次数" value={resultsData.summary.attemptCount} suffix="次" /></Card></Col>
               <Col span={6}><Card><Statistic title="试卷总分" value={resultsData.paper.totalScore as number} suffix="分" /></Card></Col>
