@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { getAuthAdmin } from "@/lib/auth";
 import { createDynamicQrToken } from "@/lib/checkin";
+import { getRequestAccessOrigin } from "@/lib/access-origin";
 
 export async function GET(
   request: NextRequest,
@@ -14,7 +15,7 @@ export async function GET(
     const training = await prisma.training.findUnique({ where: { id: parseInt(id) } });
     if (!training) return NextResponse.json({ success: false, message: "培训不存在" }, { status: 404 });
     const token = await createDynamicQrToken(training.id, training.qrToken);
-    const baseUrl = request.nextUrl.origin;
+    const baseUrl = getRequestAccessOrigin(request);
     return NextResponse.json({
       success: true,
       data: { token, checkinUrl: `${baseUrl}/checkin/${token}`, expiresIn: 90 },
@@ -43,7 +44,7 @@ export async function POST(
       success: true,
       data: {
         qrToken,
-        checkinUrl: `${request.nextUrl.origin}/checkin/${qrToken}`,
+        checkinUrl: `${getRequestAccessOrigin(request)}/checkin/${qrToken}`,
       },
     });
   } catch (error) {

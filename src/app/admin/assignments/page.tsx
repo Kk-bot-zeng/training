@@ -5,6 +5,7 @@ import { Button, DatePicker, Drawer, Form, Input, Modal, Popconfirm, Select, Spa
 import { DeleteOutlined, EditOutlined, EyeOutlined, FileTextOutlined, PlusOutlined, QrcodeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { QRCodeSVG } from "qrcode.react";
+import { getBrowserAccessOrigin } from "@/lib/access-origin";
 
 type Assignment = {
   id: number; title: string; description?: string; departmentIds: string; dueDate: string; status: string;
@@ -135,7 +136,7 @@ export default function AssignmentsAdminPage() {
 
     <Modal title="扫码提交作业" open={!!qrAssignment} onCancel={() => setQrAssignment(null)} footer={null} width={420}>
       {qrAssignment && <div className="assignment-qr-content">
-        <QRCodeSVG className="assignment-qr-code" value={`${typeof window === "undefined" ? "" : window.location.origin}/portal/assignments?assignmentId=${qrAssignment.id}`} size={240} level="M" includeMargin />
+        <QRCodeSVG className="assignment-qr-code" value={`${getBrowserAccessOrigin()}/portal/assignments?assignmentId=${qrAssignment.id}`} size={240} level="M" includeMargin />
         <Typography.Title level={4} style={{ margin: "10px 0 4px" }}>{qrAssignment.title}</Typography.Title>
         <Typography.Text type="secondary">学员使用手机扫码，登录后即可上传并提交文件</Typography.Text>
       </div>}

@@ -5,6 +5,7 @@ import { Table, Button, Drawer, Form, Input, Select, Switch, InputNumber, DatePi
 import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined, BarChartOutlined, QrcodeOutlined, CopyOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { QRCodeSVG } from "qrcode.react";
+import { getBrowserAccessOrigin } from "@/lib/access-origin";
 
 const typeLabels: Record<string, string> = { timed: "定时考试", practice: "模拟练习" };
 
@@ -273,7 +274,7 @@ export default function ExamPapersPage() {
 
       <Modal title="考试二维码" open={Boolean(qrPaper)} onCancel={() => setQrPaper(null)} footer={null} width={420} centered>
         {qrPaper && (() => {
-          const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+          const baseUrl = getBrowserAccessOrigin();
           const examUrl = `${baseUrl}/portal/exams/${qrPaper.id}`;
           return <div className="exam-qr-content">
             <h3>{qrPaper.title as string}</h3>

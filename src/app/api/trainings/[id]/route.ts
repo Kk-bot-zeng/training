@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
+import { getRequestAccessOrigin } from "@/lib/access-origin";
 
 export async function GET(
   request: NextRequest,
@@ -64,7 +65,7 @@ export async function GET(
       data: {
         ...training,
         attendance,
-        checkinUrl: `${request.nextUrl.origin}/checkin/${training.qrToken}`,
+        checkinUrl: `${getRequestAccessOrigin(request)}/checkin/${training.qrToken}`,
         summary: { total: attendance.length, present, late, leave, absent, pending },
       },
     });

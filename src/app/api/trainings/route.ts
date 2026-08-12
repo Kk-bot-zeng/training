@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { getRequestAccessOrigin } from "@/lib/access-origin";
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const checkinUrl = `${request.nextUrl.origin}/checkin/${qrToken}`;
+    const checkinUrl = `${getRequestAccessOrigin(request)}/checkin/${qrToken}`;
 
     return NextResponse.json({
       success: true,
