@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
+    const { username: rawUsername, password, employeeId } = await request.json();
+    const username = typeof rawUsername === "string" ? rawUsername.trim() : "";
     if (!username || !password) {
       return NextResponse.json({ success: false, message: "用户名和密码不能为空" }, { status: 400 });
     }
@@ -18,11 +19,11 @@ export async function POST(request: NextRequest) {
       prisma.admin.findUnique({ where: { username } }),
       prisma.employee.findUnique({
         where: { employeeNo: username },
-        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true },
+        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true, department: { select: { name: true } } },
       }),
       prisma.employee.findMany({
         where: { name: username },
-        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true },
+        select: { id: true, employeeNo: true, name: true, status: true, passwordHash: true, department: { select: { name: true } } },
       }),
     ]);
     if (admin) {
@@ -39,10 +40,26 @@ export async function POST(request: NextRequest) {
         const passwordMatches = (await Promise.all(activeCandidates.map(async (candidate) =>
           await bcrypt.compare(password, candidate.passwordHash!) ? candidate : null
         ))).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
-        if (passwordMatches.length > 1) {
-          return NextResponse.json({ success: false, message: "同名账号使用了相同密码，请使用工号登录或联系管理员设置不同密码" }, { status: 409 });
+        if (employeeId != null) {
+          employee = passwordMatches.find((candidate) => candidate.id === Number(employeeId)) ?? null;
+          if (!employee) {
+            return NextResponse.json({ success: false, message: "账号选择已失效，请重新登录" }, { status: 401 });
+          }
+        } else if (passwordMatches.length > 1) {
+          return NextResponse.json({
+            success: false,
+            code: "ACCOUNT_SELECTION_REQUIRED",
+            message: "检测到多个同名账号，请选择所属部门",
+            data: {
+              candidates: passwordMatches.map((candidate) => ({
+                id: candidate.id,
+                departmentName: candidate.department.name,
+                employeeNo: candidate.employeeNo,
+              })),
+            },
+          }, { status: 409 });
         }
-        employee = passwordMatches[0];
+        employee ||= passwordMatches[0];
         if (!employee) {
           return NextResponse.json({ success: false, message: "用户名或密码错误" }, { status: 401 });
         }
