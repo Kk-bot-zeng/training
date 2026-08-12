@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { Row, Col, Card, List, Tag, Spin } from "antd";
+import { Row, Col, Card, List, Tag, Spin, Button, Result } from "antd";
 import { useRouter } from "next/navigation";
 import { BookOutlined, EditOutlined, CheckCircleOutlined, TrophyOutlined } from "@ant-design/icons";
 import { fetcher, swrConfig } from "@/lib/fetcher";
@@ -13,7 +13,11 @@ export default function PortalDashboard() {
   const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = stored ? JSON.parse(stored) : null;
 
-  const { data: dashboard } = useSWR("/api/portal/dashboard", fetcher, swrConfig);
+  const { data: dashboard, error, isLoading, mutate } = useSWR("/api/portal/dashboard", fetcher, {
+    ...swrConfig,
+    loadingTimeout: 12_000,
+    errorRetryCount: 1,
+  });
   const papers = dashboard?.papers;
   const statsData = dashboard?.stats;
 
@@ -21,7 +25,7 @@ export default function PortalDashboard() {
   const records = statsData?.records || [];
   const summary = statsData?.summary || { total: 0, attended: 0, rate: "0%" };
 
-  const isLoading = !papers || !statsData;
+  const dashboardLoading = isLoading || (!dashboard && !error);
 
   const statCards = [
     { title: "已参加培训", value: summary.total || 0, suffix: "场", icon: <BookOutlined />, color: "#667eea", bg: "rgba(102,126,234,0.12)" },
@@ -39,8 +43,21 @@ export default function PortalDashboard() {
         <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>查看你的培训考勤和考试安排</p>
       </div>
 
-      {isLoading ? (
-        <div style={{ textAlign: "center", padding: 60 }}><Spin size="large" /></div>
+      {dashboardLoading ? (
+        <div style={{ textAlign: "center", padding: 60 }}>
+          <Spin size="large" />
+          <div style={{ marginTop: 14, color: "#64748b" }}>正在加载学习信息…</div>
+        </div>
+      ) : error ? (
+        <Result
+          status="warning"
+          title="学习信息暂时加载失败"
+          subTitle="登录已经成功，可能是当前网络不稳定。您可以重新加载，或直接进入考试。"
+          extra={[
+            <Button type="primary" key="retry" onClick={() => mutate()}>重新加载</Button>,
+            <Button key="exams" onClick={() => router.push("/portal/exams")}>直接进入考试</Button>,
+          ]}
+        />
       ) : (
         <>
           <Row gutter={[16, 16]}>

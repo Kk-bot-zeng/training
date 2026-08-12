@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
     }
 
-    const [employee, records, papers] = await Promise.all([
+    const [employee, records, attendanceCounts, papers] = await Promise.all([
       prisma.employee.findUnique({
         where: { id: user.id },
         select: {
@@ -28,6 +28,12 @@ export async function GET() {
           training: { select: { id: true, title: true, type: true, date: true } },
         },
         orderBy: { training: { date: "desc" } },
+        take: 10,
+      }),
+      prisma.attendance.groupBy({
+        by: ["status"],
+        where: { employeeId: user.id },
+        _count: { _all: true },
       }),
       prisma.examPaper.findMany({
         where: { status: "published" },
@@ -43,10 +49,11 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "Employee not found" }, { status: 404 });
     }
 
-    const attended = records.filter((record) => ["present", "late"].includes(record.status)).length;
-    const total = records.length;
-    const leave = records.filter((record) => record.status === "leave").length;
-    const absent = records.filter((record) => record.status === "absent").length;
+    const countByStatus = new Map(attendanceCounts.map((item) => [item.status, item._count._all]));
+    const attended = (countByStatus.get("present") || 0) + (countByStatus.get("late") || 0);
+    const total = attendanceCounts.reduce((sum, item) => sum + item._count._all, 0);
+    const leave = countByStatus.get("leave") || 0;
+    const absent = countByStatus.get("absent") || 0;
     const effectiveTotal = total - leave;
     const publishedPapers = papers.map(({ attempts, ...paper }) => {
       const completedAttempts = attempts.filter((attempt) => attempt.status === "submitted").length;
