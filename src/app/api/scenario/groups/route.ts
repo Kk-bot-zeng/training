@@ -1,0 +1,8 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getAuthAdmin } from "@/lib/auth";
+
+export async function GET() { try { await getAuthAdmin(); return NextResponse.json({ success: true, data: await prisma.scenarioGroup.findMany({ include: { _count: { select: { scripts: true } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }) }); } catch { return NextResponse.json({ success: false, message: "获取分组失败" }, { status: 401 }); } }
+export async function POST(request: NextRequest) { try { await getAuthAdmin(); const body=await request.json(); if(!body.name?.trim()) return NextResponse.json({success:false,message:"请输入分组名称"},{status:400}); const item=await prisma.scenarioGroup.create({data:{name:body.name.trim(),parentId:body.parentId?Number(body.parentId):null}}); return NextResponse.json({success:true,data:item}); } catch { return NextResponse.json({success:false,message:"创建分组失败"},{status:500}); } }
+export async function PUT(request: NextRequest) { try { await getAuthAdmin(); const body=await request.json(); const item=await prisma.scenarioGroup.update({where:{id:Number(body.id)},data:{name:body.name.trim(),parentId:body.parentId?Number(body.parentId):null,sortOrder:Number(body.sortOrder)||0}}); return NextResponse.json({success:true,data:item}); } catch { return NextResponse.json({success:false,message:"更新分组失败"},{status:500}); } }
+export async function DELETE(request: NextRequest) { try { await getAuthAdmin(); const {id}=await request.json(); await prisma.scenarioGroup.delete({where:{id:Number(id)}}); return NextResponse.json({success:true}); } catch { return NextResponse.json({success:false,message:"分组内有剧本或删除失败"},{status:400}); } }

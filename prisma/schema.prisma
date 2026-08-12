@@ -30,9 +30,101 @@ model Employee {
   learningAssignments   LearningAssignment[]
   passageRecords        PassageRecord[]
   catcherQuestions      CatcherQuestion[]
+  scenarioAssignments   ScenarioAssignment[]
+  scenarioSessions      ScenarioSession[]
 
   @@index([departmentId, status])
   @@index([status, createdAt])
+}
+
+// ========== 场景演练 ===========
+
+model ScenarioGroup {
+  id        Int              @id @default(autoincrement())
+  name      String
+  parentId  Int?
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  scripts   ScenarioScript[]
+
+  @@index([parentId, sortOrder])
+}
+
+model ScenarioScript {
+  id              Int              @id @default(autoincrement())
+  groupId         Int?
+  group           ScenarioGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  name            String
+  generationMode  String           @default("product") // product/practical/custom
+  productModel    String?
+  productMaterial String?          @db.Text
+  customerProfile String           @db.Text
+  trainingGoal    String           @db.Text
+  forbiddenRules  String?          @db.Text
+  openingMessage  String           @db.Text
+  nodes           String           @db.Text // JSON
+  scoringCriteria String           @db.Text // JSON
+  difficulty      String           @default("standard")
+  status          String           @default("draft") // draft/published/disabled
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tasks           ScenarioTask[]
+
+  @@index([groupId, status, updatedAt])
+}
+
+model ScenarioTask {
+  id              Int                  @id @default(autoincrement())
+  scriptId        Int
+  script          ScenarioScript       @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  name            String
+  startTime       DateTime?
+  endTime         DateTime?
+  durationMinutes Int                  @default(30)
+  maxAttempts     Int                  @default(1)
+  passScore       Int                  @default(60)
+  allowHints      Boolean              @default(true)
+  status          String               @default("published") // draft/published/closed
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  assignments     ScenarioAssignment[]
+  sessions        ScenarioSession[]
+
+  @@index([status, startTime, endTime])
+}
+
+model ScenarioAssignment {
+  id         Int          @id @default(autoincrement())
+  taskId     Int
+  task       ScenarioTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employeeId Int
+  employee   Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  assignedAt DateTime     @default(now())
+
+  @@unique([taskId, employeeId])
+  @@index([employeeId, assignedAt])
+}
+
+model ScenarioSession {
+  id         Int          @id @default(autoincrement())
+  taskId     Int
+  task       ScenarioTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  employeeId Int
+  employee   Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attemptNo  Int          @default(1)
+  messages   String       @default("[]") @db.Text // JSON
+  currentNode Int         @default(0)
+  status     String       @default("in_progress") // in_progress/submitted/graded
+  score      Int?
+  feedback   String?      @db.Text // JSON
+  startedAt  DateTime     @default(now())
+  submittedAt DateTime?
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([taskId, employeeId, attemptNo])
+  @@index([employeeId, status, updatedAt])
+  @@index([taskId, status])
 }
 
 // ========== 捕手计划 ===========

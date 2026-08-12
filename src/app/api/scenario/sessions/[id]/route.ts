@@ -1,0 +1,5 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
+
+export async function GET(_:NextRequest,{params}:{params:Promise<{id:string}>}){try{const user=await getAuthUser();const {id}=await params;const session=await prisma.scenarioSession.findUnique({where:{id:Number(id)},include:{task:{include:{script:true}},employee:{select:{id:true,name:true,department:{select:{name:true}}}}}});if(!session||(user.role!=="admin"&&session.employeeId!==user.id))return NextResponse.json({success:false,message:"无权限"},{status:403});return NextResponse.json({success:true,data:{...session,messages:JSON.parse(session.messages),feedback:session.feedback?JSON.parse(session.feedback):null,task:{...session.task,script:{...session.task.script,nodes:JSON.parse(session.task.script.nodes),scoringCriteria:JSON.parse(session.task.script.scoringCriteria)}}}});}catch{return NextResponse.json({success:false,message:"获取演练失败"},{status:500});}}
