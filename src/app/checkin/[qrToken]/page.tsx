@@ -45,10 +45,15 @@ export default function CheckinPage() {
     if (data.success) {
       setEmployee(data.data);
       setNeedsBinding(false);
+      setError("");
+      return true;
     } else if (data.code === "DEVICE_BIND_REQUIRED") {
+      setEmployee(null);
       setNeedsBinding(true);
+      return false;
     } else {
       setError(data.message || "无法识别签到身份");
+      return false;
     }
   };
 
@@ -82,10 +87,10 @@ export default function CheckinPage() {
       });
       const data = await response.json();
       if (!data.success) return setError(data.message || "绑定失败");
-      setEmployee({ ...data.data, checkedIn: false, status: null, checkInTime: null });
-      setNeedsBinding(false);
       setPassword("");
-      setNotice("当前手机已绑定，90天内扫码无需再次登录");
+      const verified = await loadEmployee(scanSession);
+      if (verified) setNotice("当前手机已绑定，90天内扫码无需再次登录");
+      else setNotice("");
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +106,10 @@ export default function CheckinPage() {
         body: JSON.stringify({ qrToken }),
       });
       const data = await response.json();
-      if (!data.success) return setError(data.message || "签到失败");
+      if (!data.success) {
+        if (data.code === "DEVICE_BIND_REQUIRED") { setEmployee(null); setNeedsBinding(true); setNotice(""); }
+        return setError(data.message || "签到失败");
+      }
       setEmployee((current) => current ? { ...current, checkedIn: true, status: data.data.status, checkInTime: data.data.checkInTime } : current);
       setNotice(data.message || "签到成功");
     } finally {

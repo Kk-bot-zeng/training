@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { assertCheckinOpen, createDeviceToken, deviceCookie, requestMeta, resolveCheckinAccess } from "@/lib/checkin";
+import { assertCheckinOpen, createDeviceToken, deviceCookie, requestMeta, resolveCheckinAccess, useSecureCheckinCookie } from "@/lib/checkin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       data: { id: employee.id, name: employee.name, employeeNo: employee.employeeNo, departmentName: employee.department.name },
     });
     response.cookies.set(deviceCookie.name, token, {
-      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+      httpOnly: true, secure: useSecureCheckinCookie(request), sameSite: "lax",
       maxAge: deviceCookie.maxAge, path: "/",
     });
     return response;

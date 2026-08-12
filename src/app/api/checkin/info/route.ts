@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { assertCheckinOpen, createScanSession, getCheckinWindow, resolveDynamicQrToken, scanCookie } from "@/lib/checkin";
+import { assertCheckinOpen, createScanSession, getCheckinWindow, resolveDynamicQrToken, scanCookie, useSecureCheckinCookie } from "@/lib/checkin";
 
 const errorMessages: Record<string, string> = {
   QR_EXPIRED: "二维码已更新，请重新扫描现场二维码",
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       },
     });
     response.cookies.set(scanCookie.name, scanToken, {
-      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+      httpOnly: true, secure: useSecureCheckinCookie(request), sameSite: "lax",
       maxAge: scanCookie.maxAge, path: "/",
     });
     return response;

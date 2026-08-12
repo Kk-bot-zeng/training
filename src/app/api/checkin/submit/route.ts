@@ -53,6 +53,6 @@ export async function POST(request: NextRequest) {
       TRAINING_ENDED: "培训已结束",
     };
     console.error("Submit checkin error:", error);
-    return NextResponse.json({ success: false, message: messages[code] || "签到失败" }, { status: 400 });
+    return NextResponse.json({ success: false, code: code || "CHECKIN_FAILED", message: messages[code] || "签到失败" }, { status: 400 });
   }
 }

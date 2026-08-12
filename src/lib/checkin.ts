@@ -95,6 +95,16 @@ export async function getBoundDevice() {
 export const deviceCookie = { name: DEVICE_COOKIE, maxAge: 60 * 60 * 24 * 90 };
 export const scanCookie = { name: SCAN_COOKIE, maxAge: 60 * 15 };
 
+export function useSecureCheckinCookie(request: Request) {
+  const configured = process.env.AUTH_COOKIE_SECURE;
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host") || "";
+  return forwardedProto === "https" || host.split(":")[0] === "training.kkzlqnb.top";
+}
+
 export function requestMeta(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");
   return {
