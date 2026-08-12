@@ -36,6 +36,8 @@ export default function CheckinPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [scanSession, setScanSession] = useState("");
+  const [accountChoices, setAccountChoices] = useState<Array<{ id: number; departmentName: string; employeeNo?: string | null }>>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number>();
 
   const loadEmployee = async (session = scanSession) => {
     const response = await fetch(`/api/checkin/me?qrToken=${encodeURIComponent(qrToken)}`, {
@@ -83,10 +85,20 @@ export default function CheckinPage() {
       const response = await fetch("/api/checkin/bind", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-checkin-session": scanSession },
-        body: JSON.stringify({ qrToken, identifier, password }),
+        body: JSON.stringify({ qrToken, identifier, password, employeeId: selectedEmployeeId }),
       });
       const data = await response.json();
-      if (!data.success) return setError(data.message || "绑定失败");
+      if (!data.success) {
+        if (data.code === "ACCOUNT_SELECTION_REQUIRED" && data.data?.candidates?.length) {
+          setAccountChoices(data.data.candidates);
+          setSelectedEmployeeId(data.data.candidates[0].id);
+          setError("");
+          return;
+        }
+        return setError(data.message || "绑定失败");
+      }
+      setAccountChoices([]);
+      setSelectedEmployeeId(undefined);
       setPassword("");
       const verified = await loadEmployee(scanSession);
       if (verified) setNotice("当前手机已绑定，90天内扫码无需再次登录");
@@ -144,16 +156,30 @@ export default function CheckinPage() {
                 <h2 className="text-lg font-semibold text-gray-900">首次使用，请绑定当前手机</h2>
                 <p className="mt-1 text-sm text-gray-500">只需验证一次，之后90天扫码即可签到</p>
               </div>
-              <input value={identifier} onChange={(event) => setIdentifier(event.target.value)}
+              <input value={identifier} onChange={(event) => { setIdentifier(event.target.value); setAccountChoices([]); setSelectedEmployeeId(undefined); }}
                 placeholder="姓名或工号" autoComplete="username" required
                 className="w-full rounded-xl border border-[#dce7eb] bg-[#f7fafb] px-4 py-3 outline-none focus:border-[#25c9a5]" />
-              <input value={password} onChange={(event) => setPassword(event.target.value)}
+              <input value={password} onChange={(event) => { setPassword(event.target.value); setAccountChoices([]); setSelectedEmployeeId(undefined); }}
                 placeholder="登录密码" type="password" autoComplete="current-password" required
                 className="w-full rounded-xl border border-[#dce7eb] bg-[#f7fafb] px-4 py-3 outline-none focus:border-[#25c9a5]" />
+              {accountChoices.length > 0 && (
+                <div className="rounded-xl border border-[#b8e8dc] bg-[#f2fbf8] p-4">
+                  <p className="mb-3 text-sm font-semibold text-gray-800">检测到多个同名账号，请选择所属部门</p>
+                  <div className="space-y-2">
+                    {accountChoices.map((choice) => (
+                      <label key={choice.id} className="flex cursor-pointer items-center gap-3 rounded-lg bg-white px-3 py-3 text-sm text-gray-700 shadow-sm">
+                        <input type="radio" name="checkin-account" value={choice.id} checked={selectedEmployeeId === choice.id}
+                          onChange={() => setSelectedEmployeeId(choice.id)} />
+                        <span>{choice.departmentName}{choice.employeeNo ? `（工号：${choice.employeeNo}）` : ""}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <button disabled={submitting} className="w-full rounded-xl bg-[#25c9a5] py-3 font-bold text-[#062e34] shadow-lg shadow-emerald-900/10 disabled:opacity-50">
-                {submitting ? "验证中..." : "验证并绑定手机"}
+                {submitting ? "验证中..." : accountChoices.length > 0 ? "确认部门并绑定" : "验证并绑定手机"}
               </button>
-              <p className="text-center text-xs text-gray-400">存在同名学员时请使用工号；重新绑定会让旧手机失效</p>
+              <p className="text-center text-xs text-gray-400">同名账号可选择所属部门；重新绑定会让旧手机失效</p>
             </form>
           )}
 

@@ -6,7 +6,7 @@ import { assertCheckinOpen, createDeviceToken, deviceCookie, requestMeta, resolv
 
 export async function POST(request: NextRequest) {
   try {
-    const { qrToken, identifier, password } = await request.json();
+    const { qrToken, identifier, password, employeeId } = await request.json();
     if (!qrToken || !identifier?.trim() || !password) {
       return NextResponse.json({ success: false, message: "请输入姓名或工号和密码" }, { status: 400 });
     }
@@ -17,17 +17,41 @@ export async function POST(request: NextRequest) {
         where: { employeeNo: identifier.trim(), status: "active" }, include: { department: true },
       }),
       prisma.employee.findMany({
-        where: { name: identifier.trim(), status: "active" }, include: { department: true }, take: 2,
+        where: { name: identifier.trim(), status: "active" }, include: { department: true },
       }),
     ]);
-    if (!employeeByNo && employeesByName.length > 1) {
-      return NextResponse.json({ success: false, message: "存在同名学员，请使用工号绑定" }, { status: 409 });
+    const departmentIds = JSON.parse(training.departmentIds) as number[];
+    let employee = employeeByNo;
+    if (!employee) {
+      const passwordMatches = (await Promise.all(employeesByName.map(async (candidate) =>
+        candidate.passwordHash && await bcrypt.compare(password, candidate.passwordHash) ? candidate : null
+      ))).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
+      const eligibleMatches = passwordMatches.filter((candidate) => departmentIds.includes(candidate.departmentId));
+      if (employeeId != null) {
+        employee = eligibleMatches.find((candidate) => candidate.id === Number(employeeId)) ?? null;
+        if (!employee) {
+          return NextResponse.json({ success: false, message: "账号选择已失效，请重新验证" }, { status: 401 });
+        }
+      } else if (eligibleMatches.length > 1) {
+        return NextResponse.json({
+          success: false,
+          code: "ACCOUNT_SELECTION_REQUIRED",
+          message: "检测到多个同名账号，请选择所属部门",
+          data: {
+            candidates: eligibleMatches.map((candidate) => ({
+              id: candidate.id,
+              departmentName: candidate.department.name,
+              employeeNo: candidate.employeeNo,
+            })),
+          },
+        }, { status: 409 });
+      } else {
+        employee = eligibleMatches[0] ?? passwordMatches[0] ?? null;
+      }
     }
-    const employee = employeeByNo || employeesByName[0];
-    if (!employee?.passwordHash || !(await bcrypt.compare(password, employee.passwordHash))) {
+    if (!employee?.passwordHash || (employeeByNo && !(await bcrypt.compare(password, employee.passwordHash)))) {
       return NextResponse.json({ success: false, message: "姓名/工号或密码错误" }, { status: 401 });
     }
-    const departmentIds = JSON.parse(training.departmentIds) as number[];
     if (!departmentIds.includes(employee.departmentId)) {
       return NextResponse.json({ success: false, message: "你不属于本次培训范围" }, { status: 403 });
     }
