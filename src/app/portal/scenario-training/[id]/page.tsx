@@ -13,12 +13,18 @@ export default function ScenarioChat() {
   const [sending, setSending] = useState(false);
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState<any>();
+  const [remaining, setRemaining] = useState<number>();
   const bottom = useRef<HTMLDivElement>(null);
   const load = () => fetch(`/api/scenario/sessions/${id}`, { cache: "no-store" }).then(r => r.json()).then(d => {
     if (d.success) { setData(d.data); if (d.data.feedback) setResult(d.data.feedback); }
     else message.error(d.message);
   });
   useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    if (!data?.startedAt || !data?.task?.durationMinutes || result) return;
+    const update = () => setRemaining(Math.max(0, data.task.durationMinutes * 60 - Math.floor((Date.now() - new Date(data.startedAt).getTime()) / 1000)));
+    update(); const timer = window.setInterval(update, 1000); return () => window.clearInterval(timer);
+  }, [data?.startedAt, data?.task?.durationMinutes, result]);
   useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [data?.messages?.length]);
   const send = async () => {
     if (!text.trim() || sending) return;
@@ -55,7 +61,7 @@ export default function ScenarioChat() {
   const nodes = data.task.script.nodes || [];
   return <div>
     <Card style={{ borderRadius: 16, marginBottom: 12 }}>
-      <Row align="middle" gutter={16}><Col flex="auto"><h2 style={{ margin: 0 }}>{data.task.name}</h2><span style={{ color: "#64748b" }}>AI扮演客户，请像真实销售一样自然沟通</span></Col><Col><Tag color="blue">第 {Math.min(data.currentNode + 1, nodes.length)}/{nodes.length} 阶段</Tag></Col></Row>
+      <Row align="middle" gutter={16}><Col flex="auto"><h2 style={{ margin: 0 }}>{data.task.name}</h2><span style={{ color: "#64748b" }}>AI扮演客户，请像真实销售一样自然沟通</span></Col><Col><Space wrap><Tag color={(remaining||0)<300?"red":"blue"}>剩余 {Math.floor((remaining||0)/60)}:{String((remaining||0)%60).padStart(2,"0")}</Tag><Tag color="blue">第 {Math.min(data.currentNode + 1, nodes.length)}/{nodes.length} 阶段</Tag></Space></Col></Row>
       <Progress percent={nodes.length ? Math.round(data.currentNode / nodes.length * 100) : 0} showInfo={false} />
     </Card>
     <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: "hidden" }}>
