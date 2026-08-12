@@ -14,9 +14,7 @@ export async function GET(
     const training = await prisma.training.findUnique({ where: { id: parseInt(id) } });
     if (!training) return NextResponse.json({ success: false, message: "培训不存在" }, { status: 404 });
     const token = await createDynamicQrToken(training.id, training.qrToken);
-    const requestedOrigin = request.nextUrl.searchParams.get("origin");
-    const allowedOrigins = new Set([process.env.NEXT_PUBLIC_BASE_URL, "http://10.68.208.188:8080"].filter(Boolean));
-    const baseUrl = requestedOrigin && allowedOrigins.has(requestedOrigin) ? requestedOrigin : process.env.NEXT_PUBLIC_BASE_URL;
+    const baseUrl = request.nextUrl.origin;
     return NextResponse.json({
       success: true,
       data: { token, checkinUrl: `${baseUrl}/checkin/${token}`, expiresIn: 90 },
@@ -28,7 +26,7 @@ export async function GET(
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -45,7 +43,7 @@ export async function POST(
       success: true,
       data: {
         qrToken,
-        checkinUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${qrToken}`,
+        checkinUrl: `${request.nextUrl.origin}/checkin/${qrToken}`,
       },
     });
   } catch (error) {

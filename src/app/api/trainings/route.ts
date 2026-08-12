@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const checkinUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${qrToken}`;
+    const checkinUrl = `${request.nextUrl.origin}/checkin/${qrToken}`;
 
     return NextResponse.json({
       success: true,

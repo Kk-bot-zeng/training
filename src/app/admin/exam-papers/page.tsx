@@ -273,7 +273,7 @@ export default function ExamPapersPage() {
 
       <Modal title="考试二维码" open={Boolean(qrPaper)} onCancel={() => setQrPaper(null)} footer={null} width={420} centered>
         {qrPaper && (() => {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== "undefined" ? window.location.origin : "");
+          const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
           const examUrl = `${baseUrl}/portal/exams/${qrPaper.id}`;
           return <div className="exam-qr-content">
             <h3>{qrPaper.title as string}</h3>

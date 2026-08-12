@@ -26,8 +26,7 @@ export default function QRCodePage() {
   const [refreshIn, setRefreshIn] = useState(60);
 
   const refreshDynamicQr = async () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const res = await fetch(`/api/trainings/${id}/qr?origin=${encodeURIComponent(origin)}`);
+    const res = await fetch(`/api/trainings/${id}/qr`);
     const data = await res.json();
     if (data.success) {
       setCheckinUrl(data.data.checkinUrl);

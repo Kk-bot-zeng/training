@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { gradeEssayAnswers } from "@/lib/ai-essay-grader";
@@ -172,22 +172,15 @@ export async function PUT(request: NextRequest) {
 
     // Auto-grade
     const questionMap = new Map(attempt.paper.paperQuestions.map(pq => [pq.questionId, pq]));
-    const essayGrades = await gradeEssayAnswers(answers.flatMap((answer: { questionId: number; userAnswer: string }) => {
-      const paperQuestion = questionMap.get(answer.questionId);
-      if (!paperQuestion || paperQuestion.question.type !== "essay") return [];
-      return [{ questionId: answer.questionId, question: paperQuestion.question.content, referenceAnswer: paperQuestion.question.answer, userAnswer: String(answer.userAnswer || ""), maxScore: paperQuestion.score }];
-    }));
     let totalScore = 0;
     const gradedAnswers = answers.map((a: { questionId: number; userAnswer: string }) => {
       const pq = questionMap.get(a.questionId);
       if (!pq) return { ...a, isCorrect: false, score: 0 };
       const q = pq.question;
-      const essayGrade = q.type === "essay" ? essayGrades.get(a.questionId) : undefined;
       const isCorrect = q.type !== "essay" ? isObjectiveAnswerCorrect(q.type, a.userAnswer, q.answer) : null;
-      const score = essayGrade ? essayGrade.score : (isCorrect === true ? pq.score : 0);
+      const score = isCorrect === true ? pq.score : 0;
       if (score > 0) totalScore += score;
-      return { questionId: a.questionId, userAnswer: a.userAnswer, isCorrect, score,
-        ...(essayGrade ? { manuallyGraded: true, gradingMethod: "ai", aiReason: essayGrade.reason, aiConfidence: essayGrade.confidence } : {}) };
+      return { questionId: a.questionId, userAnswer: a.userAnswer, isCorrect, score };
     });
 
     const updated = await prisma.examAttempt.updateMany({
@@ -206,6 +199,29 @@ export async function PUT(request: NextRequest) {
       }
       return NextResponse.json({ success: false, message: "交卷状态已变化，请刷新后确认" }, { status: 409 });
     }
+
+    const essayInputs = answers.flatMap((answer: { questionId: number; userAnswer: string }) => {
+      const paperQuestion = questionMap.get(answer.questionId);
+      if (!paperQuestion || paperQuestion.question.type !== "essay") return [];
+      return [{ questionId: answer.questionId, question: paperQuestion.question.content, referenceAnswer: paperQuestion.question.answer, userAnswer: String(answer.userAnswer || ""), maxScore: paperQuestion.score }];
+    });
+    if (essayInputs.length) after(async () => {
+      try {
+        const essayGrades = await gradeEssayAnswers(essayInputs);
+        if (!essayGrades.size) return;
+        const latest = await prisma.examAttempt.findUnique({ where: { id: attemptId }, select: { answers: true, status: true } });
+        if (!latest || !["submitted", "graded"].includes(latest.status)) return;
+        let latestAnswers: Array<Record<string, unknown>> = [];
+        try { latestAnswers = JSON.parse(latest.answers || "[]"); } catch { return; }
+        const merged = latestAnswers.map((answer) => {
+          if (answer.manuallyGraded) return answer;
+          const grade = essayGrades.get(Number(answer.questionId));
+          return grade ? { ...answer, score: grade.score, manuallyGraded: true, gradingMethod: "ai", aiReason: grade.reason, aiConfidence: grade.confidence } : answer;
+        });
+        const finalScore = merged.reduce((sum, answer) => sum + (Number(answer.score) || 0), 0);
+        await prisma.examAttempt.update({ where: { id: attemptId }, data: { answers: JSON.stringify(merged), score: finalScore } });
+      } catch (error) { console.error("Background essay grading failed", error); }
+    });
 
     return NextResponse.json({ success: true, data: { id: attemptId, status: "submitted", score: totalScore, detail: gradedAnswers } });
   } catch (e: unknown) {

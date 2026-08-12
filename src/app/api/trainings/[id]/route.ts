@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -64,7 +64,7 @@ export async function GET(
       data: {
         ...training,
         attendance,
-        checkinUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/checkin/${training.qrToken}`,
+        checkinUrl: `${request.nextUrl.origin}/checkin/${training.qrToken}`,
         summary: { total: attendance.length, present, late, leave, absent, pending },
       },
     });
