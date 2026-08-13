@@ -222,6 +222,16 @@ export default function ScenarioAdmin() {
     taskForm.resetFields();
     load();
   };
+  const deleteScript = async (script: Script) => {
+    const d = await fetch("/api/scenario/scripts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [script.id] }),
+    }).then((x) => x.json());
+    if (!d.success) return message.error(d.message);
+    message.success(`剧本“${script.name}”已删除`);
+    await load();
+  };
   const scriptCols = [
     { title: "剧本名称", dataIndex: "name" },
     {
@@ -263,16 +273,7 @@ export default function ScenarioAdmin() {
           <Popconfirm
             title="确认删除剧本？"
             description="关联的演练任务和演练记录也会一并删除，此操作不可恢复。"
-            onConfirm={async () => {
-              const d = await fetch("/api/scenario/scripts", {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids: [r.id] }),
-              }).then((x) => x.json());
-              if (!d.success) return message.error(d.message);
-              message.success("剧本已删除");
-              load();
-            }}
+            onConfirm={() => deleteScript(r)}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
               删除剧本
@@ -386,17 +387,76 @@ export default function ScenarioAdmin() {
                     <Tree
                       defaultExpandAll
                       selectedKeys={[selectedGroup]}
-                      onSelect={(keys) =>
-                        setSelectedGroup(String(keys[0] || "all"))
-                      }
+                      onSelect={(keys) => {
+                        const key = String(keys[0] || "all");
+                        if (!key.startsWith("script-")) setSelectedGroup(key);
+                      }}
                       treeData={[
                         {
                           key: "all",
                           title: `全部剧本（${scripts.length}）`,
-                          children: groups.map((g) => ({
-                            key: String(g.id),
-                            title: `${g.name}（${g._count?.scripts || 0}）`,
-                          })),
+                          children: [
+                            ...groups.map((g) => ({
+                              key: String(g.id),
+                              title: `${g.name}（${g._count?.scripts || 0}）`,
+                              children: scripts
+                                .filter((s) => s.groupId === g.id)
+                                .map((s) => ({
+                                  key: `script-${s.id}`,
+                                  title: (
+                                    <Space
+                                      size={4}
+                                      onClick={(event) =>
+                                        event.stopPropagation()
+                                      }
+                                    >
+                                      <span>{s.name}</span>
+                                      <Popconfirm
+                                        title="确认删除剧本？"
+                                        description="关联任务和演练记录也会删除。"
+                                        onConfirm={() => deleteScript(s)}
+                                      >
+                                        <Button
+                                          type="text"
+                                          size="small"
+                                          danger
+                                          aria-label={`删除剧本${s.name}`}
+                                          icon={<DeleteOutlined />}
+                                        />
+                                      </Popconfirm>
+                                    </Space>
+                                  ),
+                                  isLeaf: true,
+                                })),
+                            })),
+                            ...scripts
+                              .filter((s) => !s.groupId)
+                              .map((s) => ({
+                                key: `script-${s.id}`,
+                                title: (
+                                  <Space
+                                    size={4}
+                                    onClick={(event) => event.stopPropagation()}
+                                  >
+                                    <span>{s.name}</span>
+                                    <Popconfirm
+                                      title="确认删除剧本？"
+                                      description="关联任务和演练记录也会删除。"
+                                      onConfirm={() => deleteScript(s)}
+                                    >
+                                      <Button
+                                        type="text"
+                                        size="small"
+                                        danger
+                                        aria-label={`删除剧本${s.name}`}
+                                        icon={<DeleteOutlined />}
+                                      />
+                                    </Popconfirm>
+                                  </Space>
+                                ),
+                                isLeaf: true,
+                              })),
+                          ],
                         },
                       ]}
                     />
@@ -715,10 +775,7 @@ export default function ScenarioAdmin() {
           </Button>
         }
       >
-        <Form
-          form={taskForm}
-          layout="vertical"
-        >
+        <Form form={taskForm} layout="vertical">
           <Form.Item name="name" label="任务名称" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
