@@ -16,15 +16,22 @@ import {
   Space,
   Table,
   Tag,
+  Upload,
   message,
 } from "antd";
 import {
   DeleteOutlined,
   EditOutlined,
   FileImageOutlined,
+  DownloadOutlined,
   PlusOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import {
+  downloadCatcherTemplate,
+  parseCatcherWorkbook,
+} from "@/lib/catcher-import";
 
 type Item = {
   id: number;
@@ -104,7 +111,8 @@ export default function AdminCatcherPlanPage() {
     [selected, setSelected] = useState<React.Key[]>([]),
     [edit, setEdit] = useState<Item | null>(null),
     [formOpen, setFormOpen] = useState(false),
-    [posterOpen, setPosterOpen] = useState(false);
+    [posterOpen, setPosterOpen] = useState(false),
+    [importing, setImporting] = useState(false);
   const [form] = Form.useForm();
   const [poster] = Form.useForm();
   const load = async () => {
@@ -115,6 +123,28 @@ export default function AdminCatcherPlanPage() {
   useEffect(() => {
     load();
   }, []);
+  const importQuestions = async (file: File) => {
+    setImporting(true);
+    try {
+      const rows = await parseCatcherWorkbook(file, true);
+      const d = await fetch("/api/catcher-questions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: rows }),
+      }).then((r) => r.json());
+      if (!d.success) throw new Error(d.message);
+      const failedText = d.failed?.length
+        ? `，${d.failed.length}条失败（首个：第${d.failed[0].row}行${d.failed[0].message}）`
+        : "";
+      message.success(`成功导入${d.imported}条${failedText}`, 6);
+      await load();
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "导入失败");
+    } finally {
+      setImporting(false);
+    }
+    return false;
+  };
   const save = async () => {
     const v = await form.validateFields();
     const r = await fetch("/api/catcher-questions", {
@@ -265,6 +295,21 @@ export default function AdminCatcherPlanPage() {
           >
             新增问答
           </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => downloadCatcherTemplate(true)}
+          >
+            下载导入模板
+          </Button>
+          <Upload
+            accept=".xlsx,.xls"
+            showUploadList={false}
+            beforeUpload={importQuestions}
+          >
+            <Button loading={importing} icon={<UploadOutlined />}>
+              一键导入问题和答案
+            </Button>
+          </Upload>
           <Button
             icon={<FileImageOutlined />}
             disabled={!chosen.length}
