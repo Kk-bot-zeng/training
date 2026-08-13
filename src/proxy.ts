@@ -17,13 +17,7 @@ export function proxy(request: NextRequest) {
 
   // Allow public paths
   if (publicPaths.some((p) => pathname.startsWith(p))) {
-    const response = NextResponse.next();
-    if (pathname === "/login") {
-      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-      response.headers.set("Pragma", "no-cache");
-      response.headers.set("Expires", "0");
-    }
-    return response;
+    return NextResponse.next();
   }
 
   // Allow static assets
