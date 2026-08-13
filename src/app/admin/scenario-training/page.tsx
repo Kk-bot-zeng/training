@@ -69,6 +69,7 @@ export default function ScenarioAdmin() {
     [editing, setEditing] = useState<Script | null>(null),
     [editingTask, setEditingTask] = useState<any>(null),
     [selectedGroup, setSelectedGroup] = useState<string>("all"),
+    [reviewTask, setReviewTask] = useState<any>(null),
     [resultSession, setResultSession] = useState<any>();
   const [form] = Form.useForm(),
     [taskForm] = Form.useForm();
@@ -333,13 +334,15 @@ export default function ScenarioAdmin() {
           >
             编辑/重新发布
           </Button>
-          {(r.sessions || [])
-            .filter((s: any) => s.status === "graded")
-            .map((s: any) => (
-              <Button key={s.id} type="link" onClick={() => viewResult(s.id)}>
-                查看{s.score}分复盘
-              </Button>
-            ))}
+          <Button
+            type="link"
+            disabled={
+              !(r.sessions || []).some((s: any) => s.status === "graded")
+            }
+            onClick={() => setReviewTask(r)}
+          >
+            查看复盘
+          </Button>
           <Popconfirm
             title="确认删除任务及演练记录？"
             onConfirm={async () => {
@@ -869,6 +872,74 @@ export default function ScenarioAdmin() {
           </Form.Item>
         </Form>
       </Drawer>
+      <Modal
+        title={`${reviewTask?.name || "演练任务"} · 学员复盘`}
+        open={Boolean(reviewTask)}
+        onCancel={() => setReviewTask(null)}
+        footer={null}
+        width={900}
+      >
+        <Table
+          rowKey="id"
+          size="small"
+          scroll={{ x: 680 }}
+          pagination={{ pageSize: 10 }}
+          dataSource={(reviewTask?.sessions || []).filter(
+            (session: any) => session.status === "graded",
+          )}
+          columns={[
+            {
+              title: "学员",
+              render: (_: unknown, session: any) => (
+                <div>
+                  <b>{session.employee?.name || "未知学员"}</b>
+                  <div style={{ color: "#94a3b8", fontSize: 12 }}>
+                    {session.employee?.department?.name || "未分配部门"}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              title: "演练次数",
+              dataIndex: "attemptNo",
+              width: 100,
+              render: (value: number) => `第${value || 1}次`,
+            },
+            {
+              title: "成绩",
+              dataIndex: "score",
+              width: 100,
+              render: (score: number) => (
+                <Tag
+                  color={
+                    score >= (reviewTask?.passScore || 60) ? "green" : "orange"
+                  }
+                >
+                  {score ?? 0}分
+                </Tag>
+              ),
+            },
+            {
+              title: "完成时间",
+              width: 170,
+              render: (_: unknown, session: any) =>
+                dayjs(session.submittedAt || session.updatedAt).format(
+                  "YYYY-MM-DD HH:mm",
+                ),
+            },
+            {
+              title: "操作",
+              width: 110,
+              render: (_: unknown, session: any) => (
+                <Button type="link" onClick={() => viewResult(session.id)}>
+                  查看详情
+                </Button>
+              ),
+            },
+          ]}
+          locale={{ emptyText: "暂无已完成的演练复盘" }}
+        />
+      </Modal>
       <Modal
         title="学员演练复盘"
         open={Boolean(resultSession)}

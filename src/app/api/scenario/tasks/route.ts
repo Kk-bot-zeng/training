@@ -21,7 +21,21 @@ export async function GET() {
             },
           },
           sessions: {
-            select: { id: true, status: true, score: true, employeeId: true },
+            select: {
+              id: true,
+              status: true,
+              score: true,
+              employeeId: true,
+              attemptNo: true,
+              submittedAt: true,
+              updatedAt: true,
+              employee: {
+                select: {
+                  name: true,
+                  department: { select: { name: true } },
+                },
+              },
+            },
           },
         },
         orderBy: { createdAt: "desc" },
