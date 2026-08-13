@@ -71,12 +71,15 @@ export async function POST(
       session.currentNode,
       Math.min(nodes.length, Number(ai.nextNode) || session.currentNode),
     );
+    const reply = typeof ai.reply === "string" && ai.reply.trim()
+      ? ai.reply.trim()
+      : "您能再具体说说吗？";
     const updated = [
       ...messages,
       { role: "user", content: message.trim(), time: new Date().toISOString() },
       {
         role: "assistant",
-        content: String(ai.reply || "您能再具体说说吗？"),
+        content: reply,
         time: new Date().toISOString(),
       },
     ];
@@ -87,7 +90,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: {
-        reply: ai.reply,
+        reply,
         currentNode: nextNode,
         canFinish: Boolean(ai.canFinish) || nextNode >= nodes.length,
       },

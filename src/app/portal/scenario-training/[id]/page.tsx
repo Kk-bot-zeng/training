@@ -46,7 +46,7 @@ export default function ScenarioChat() {
         currentNode: responseData.data.currentNode,
         messages: [...value.messages, {
           role: "assistant",
-          content: responseData.data.reply,
+          content: String(responseData.data.reply || "您能再具体说说吗？"),
           time: new Date().toISOString(),
         }],
       }));
@@ -91,7 +91,7 @@ export default function ScenarioChat() {
       <div style={{ height: "55vh", overflowY: "auto", padding: 16, background: "#f4f7fb" }}>
         {data.messages.map((item: any, index: number) => <div key={index} style={{ display: "flex", justifyContent: item.role === "user" ? "flex-end" : "flex-start", gap: 8, marginBottom: 16 }}>
           {item.role !== "user" && <Avatar icon={<RobotOutlined />} style={{ background: "#1677ff" }} />}
-          <div style={{ maxWidth: "78%", background: item.role === "user" ? "#1677ff" : "white", color: item.role === "user" ? "white" : "#1e293b", padding: "11px 14px", borderRadius: 14, boxShadow: "0 1px 3px #0001", whiteSpace: "pre-wrap" }}>{item.content}</div>
+          <div style={{ maxWidth: "78%", background: item.role === "user" ? "#1677ff" : "white", color: item.role === "user" ? "white" : "#1e293b", padding: "11px 14px", borderRadius: 14, boxShadow: "0 1px 3px #0001", whiteSpace: "pre-wrap" }}>{typeof item.content === "string" ? item.content : JSON.stringify(item.content ?? "")}</div>
           {item.role === "user" && <Avatar icon={<UserOutlined />} />}
         </div>)}
         {sending && <div style={{ color: "#64748b" }}><RobotOutlined /> 客户正在思考…</div>}<div ref={bottom} />
