@@ -1,26 +1,84 @@
 type AiMessage = { role: "system" | "user" | "assistant"; content: string };
 
-type ScenarioAiOptions = { maxTokens?: number; temperature?: number; timeoutMs?: number };
+type ScenarioAiOptions = {
+  maxTokens?: number;
+  temperature?: number;
+  timeoutMs?: number;
+};
 
-export async function callScenarioAi(messages: AiMessage[], json = false, options: ScenarioAiOptions = {}) {
+export async function callScenarioAi(
+  messages: AiMessage[],
+  json = false,
+  options: ScenarioAiOptions = {},
+) {
   const apiKey = process.env.TURING_API_KEY;
   if (!apiKey) throw new Error("AI服务尚未配置");
-  const baseUrl = (process.env.TURING_BASE_URL || "https://live-turing.cn.llm.tcljd.com/api/v1").replace(/\/$/, "");
+  const baseUrl = (
+    process.env.TURING_BASE_URL || "https://live-turing.cn.llm.tcljd.com/api/v1"
+  ).replace(/\/$/, "");
   const model = process.env.TURING_MODEL || "deepseek-v4-flash";
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, temperature: options.temperature ?? 0.25, max_tokens: options.maxTokens ?? 1800, ...(json ? { response_format: { type: "json_object" } } : {}) }),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: options.temperature ?? 0.25,
+      max_tokens: options.maxTokens ?? 1800,
+      ...(json ? { response_format: { type: "json_object" } } : {}),
+    }),
     signal: AbortSignal.timeout(options.timeoutMs ?? 90_000),
   });
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.error?.message || data?.message || "AI服务调用失败");
-  return String(data?.choices?.[0]?.message?.content || "").trim();
+  if (!response.ok)
+    throw new Error(data?.error?.message || data?.message || "AI服务调用失败");
+  const aiMessage = data?.choices?.[0]?.message;
+  const content = aiMessage?.content;
+  if (typeof content === "string" && content.trim()) return content.trim();
+  if (Array.isArray(content)) {
+    const joined = content
+      .map((part: unknown) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object") {
+          const value = part as { text?: unknown; content?: unknown };
+          if (typeof value.text === "string") return value.text;
+          if (typeof value.content === "string") return value.content;
+        }
+        return "";
+      })
+      .join("")
+      .trim();
+    if (joined) return joined;
+  }
+  if (content && typeof content === "object") {
+    const value = content as { text?: unknown; content?: unknown };
+    if (typeof value.text === "string" && value.text.trim()) {
+      return value.text.trim();
+    }
+    if (typeof value.content === "string" && value.content.trim()) {
+      return value.content.trim();
+    }
+  }
+  if (
+    typeof aiMessage?.reasoning_content === "string" &&
+    aiMessage.reasoning_content.trim()
+  ) {
+    return aiMessage.reasoning_content.trim();
+  }
+  throw new Error("AI没有返回有效内容");
 }
 
 export function parseAiJson(text: string) {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  const start = cleaned.indexOf("{"); const end = cleaned.lastIndexOf("}");
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .replace(/^\uFEFF/, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("AI没有返回有效结构");
   return JSON.parse(cleaned.slice(start, end + 1));
 }

@@ -1,31 +1,427 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, Col, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Table, Tag, message } from "antd";
-import { DeleteOutlined, EditOutlined, FileImageOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Col,
+  Drawer,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Row,
+  Select,
+  Space,
+  Table,
+  Tag,
+  message,
+} from "antd";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FileImageOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
-type Item = { id: number; submitterName: string; departmentName?: string | null; productModel?: string | null; category?: string | null; question: string; answer?: string | null; status: string; source: string; createdAt: string };
-const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;" }[c]!));
-const wrap = (text: string, size = 22, max = 42) => { const chars=[...text]; const rows:string[]=[]; while(chars.length) rows.push(chars.splice(0,max).join("")); return rows.map((r,i)=>`<tspan x="92" dy="${i?size*1.55:0}">${esc(r)}</tspan>`).join(""); };
+type Item = {
+  id: number;
+  submitterName: string;
+  departmentName?: string | null;
+  productModel?: string | null;
+  category?: string | null;
+  question: string;
+  answer?: string | null;
+  status: string;
+  source: string;
+  createdAt: string;
+};
+const esc = (v: string) =>
+  v.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&apos;",
+      })[c]!,
+  );
+const wrap = (text: string, size = 22, max = 42) => {
+  const chars = [...text];
+  const rows: string[] = [];
+  while (chars.length) rows.push(chars.splice(0, max).join(""));
+  return rows
+    .map(
+      (r, i) => `<tspan x="92" dy="${i ? size * 1.55 : 0}">${esc(r)}</tspan>`,
+    )
+    .join("");
+};
 
 function buildPoster(items: Item[], settings: Record<string, string | number>) {
-  const width=1080, cardGap=22, header=650;
-  const cards=items.map(item => Math.max(190, 120 + Math.ceil(item.question.length/42)*34 + Math.ceil((item.answer||"待补充答案").length/45)*31));
-  const height=header+cards.reduce((a,b)=>a+b+cardGap,0)+100; let y=header;
-  const body=items.map((item,index)=>{const h=cards[index]; const qy=y+62; const ay=qy+Math.max(38,Math.ceil(item.question.length/42)*34)+35; const out=`<g><rect x="55" y="${y}" width="970" height="${h}" rx="24" fill="#fff" stroke="#b8dcff" stroke-width="2"/><rect x="55" y="${y}" width="12" height="${h}" rx="6" fill="#1478ee"/><rect x="82" y="${y+24}" width="54" height="38" rx="12" fill="#0878ee"/><text x="109" y="${y+50}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${String(index+1).padStart(2,"0")}</text><text x="92" y="${qy}" fill="#143a70" font-size="24" font-weight="700">${wrap(item.question,24,38)}</text><line x1="92" y1="${ay-25}" x2="990" y2="${ay-25}" stroke="#d7eafa"/><text x="92" y="${ay}" fill="#487095" font-size="21"><tspan font-weight="700" fill="#1674d8">参考答案：</tspan>${wrap(item.answer||"待补充答案",21,44)}</text></g>`; y+=h+cardGap; return out;}).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaf8ff"/><stop offset="1" stop-color="#b9ddff"/></linearGradient><linearGradient id="hero" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0d42c7"/><stop offset="1" stop-color="#32a8ff"/></linearGradient></defs><rect width="1080" height="${height}" fill="url(#bg)"/><rect x="0" y="0" width="1080" height="420" fill="url(#hero)"/><circle cx="910" cy="165" r="115" fill="#fff" opacity=".95"/><circle cx="875" cy="145" r="12" fill="#1559d6"/><circle cx="945" cy="145" r="12" fill="#1559d6"/><path d="M875 205 Q910 230 945 205" fill="none" stroke="#1559d6" stroke-width="10" stroke-linecap="round"/><text x="65" y="80" fill="#dff5ff" font-size="28" font-weight="700">产品问题 · 捕手计划</text><text x="65" y="155" fill="#fff" font-size="55" font-weight="900">${esc(String(settings.title||"你问 · 我答 · 全员共享"))}</text><text x="65" y="208" fill="#dff5ff" font-size="28">业务疑惑合提问 · 一线经验共沉淀</text><rect x="55" y="285" width="970" height="245" rx="34" fill="#fff" opacity=".94"/><text x="90" y="342" fill="#1253ad" font-size="26" font-weight="700">培训安排</text><text x="90" y="395" fill="#173f72" font-size="26">日期：${esc(String(settings.date||"待定"))}</text><text x="420" y="395" fill="#173f72" font-size="26">地点：${esc(String(settings.location||"待定"))}</text><text x="90" y="447" fill="#173f72" font-size="24">电视专场：${esc(String(settings.tvTime||"待定"))}</text><text x="520" y="447" fill="#173f72" font-size="24">显示器专场：${esc(String(settings.monitorTime||"待定"))}</text><text x="65" y="590" fill="#0f477e" font-size="38" font-weight="800">提问内容整理</text><text x="65" y="628" fill="#173f72" font-size="23">共 ${items.filter(i=>i.source!=="talking_point").length} 条真实问题 ｜ ${items.filter(i=>i.source==="talking_point").length} 条新增话术 ｜ 按原文问题、答案整理</text>${body}<text x="540" y="${height-35}" text-anchor="middle" fill="#3979ae" font-size="18">雷鸟培训系统 · 捕手计划 · 全员共享</text></svg>`;
+  const width = 1080,
+    cardGap = 22,
+    header = 760;
+  const dateText = dayjs.isDayjs(settings.date)
+    ? settings.date.format("YYYY年M月D日")
+    : String(settings.date || "待定");
+  settings = {
+    ...settings,
+    date: dateText,
+    location: String(settings.location || "待定").slice(0, 30),
+  };
+  const cards = items.map((item) =>
+    Math.max(
+      190,
+      120 +
+        Math.ceil(item.question.length / 42) * 34 +
+        Math.ceil((item.answer || "待补充答案").length / 45) * 31,
+    ),
+  );
+  const height = header + cards.reduce((a, b) => a + b + cardGap, 0) + 100;
+  let y = header;
+  const body = items
+    .map((item, index) => {
+      const h = cards[index];
+      const qy = y + 62;
+      const ay =
+        qy + Math.max(38, Math.ceil(item.question.length / 42) * 34) + 35;
+      const out = `<g><rect x="55" y="${y}" width="970" height="${h}" rx="24" fill="#fff" stroke="#b8dcff" stroke-width="2"/><rect x="55" y="${y}" width="12" height="${h}" rx="6" fill="#1478ee"/><rect x="82" y="${y + 24}" width="54" height="38" rx="12" fill="#0878ee"/><text x="109" y="${y + 50}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${String(index + 1).padStart(2, "0")}</text><text x="92" y="${qy}" fill="#143a70" font-size="24" font-weight="700">${wrap(item.question, 24, 38)}</text><line x1="92" y1="${ay - 25}" x2="990" y2="${ay - 25}" stroke="#d7eafa"/><text x="92" y="${ay}" fill="#487095" font-size="21"><tspan font-weight="700" fill="#1674d8">参考答案：</tspan>${wrap(item.answer || "待补充答案", 21, 44)}</text></g>`;
+      y += h + cardGap;
+      return out;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMin meet"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaf8ff"/><stop offset="1" stop-color="#b9ddff"/></linearGradient><linearGradient id="hero" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0d42c7"/><stop offset="1" stop-color="#32a8ff"/></linearGradient></defs><rect width="1080" height="${height}" fill="url(#bg)"/><rect x="0" y="0" width="1080" height="420" fill="url(#hero)"/><circle cx="910" cy="165" r="115" fill="#fff" opacity=".95"/><circle cx="875" cy="145" r="12" fill="#1559d6"/><circle cx="945" cy="145" r="12" fill="#1559d6"/><path d="M875 205 Q910 230 945 205" fill="none" stroke="#1559d6" stroke-width="10" stroke-linecap="round"/><text x="65" y="80" fill="#dff5ff" font-size="28" font-weight="700">产品问题 · 捕手计划</text><text x="65" y="155" fill="#fff" font-size="55" font-weight="900">${esc(String(settings.title || "你问 · 我答 · 全员共享"))}</text><text x="65" y="208" fill="#dff5ff" font-size="28">业务疑惑合提问 · 一线经验共沉淀</text><rect x="55" y="275" width="970" height="310" rx="34" fill="#fff" opacity=".96"/><text x="90" y="332" fill="#1253ad" font-size="26" font-weight="700">培训安排</text><text x="90" y="385" fill="#173f72" font-size="26">日期：${esc(String(settings.date || "待定"))}</text><text x="90" y="433" fill="#173f72" font-size="26">地点：${esc(String(settings.location || "待定"))}</text><text x="90" y="492" fill="#173f72" font-size="24">电视专场：${esc(String(settings.tvTime || "待定"))}</text><text x="520" y="492" fill="#173f72" font-size="24">显示器专场：${esc(String(settings.monitorTime || "待定"))}</text><text x="65" y="650" fill="#0f477e" font-size="38" font-weight="800">提问内容整理</text><text x="65" y="690" fill="#173f72" font-size="23">共 ${items.filter((i) => i.source !== "talking_point").length} 条真实问题 ｜ ${items.filter((i) => i.source === "talking_point").length} 条新增话术 ｜ 按原文问题、答案整理</text>${body}<text x="540" y="${height - 35}" text-anchor="middle" fill="#3979ae" font-size="18">雷鸟培训系统 · 捕手计划 · 全员共享</text></svg>`;
 }
 
-export default function AdminCatcherPlanPage(){
- const [items,setItems]=useState<Item[]>([]),[selected,setSelected]=useState<React.Key[]>([]),[edit,setEdit]=useState<Item|null>(null),[formOpen,setFormOpen]=useState(false),[posterOpen,setPosterOpen]=useState(false); const [form]=Form.useForm(); const [poster]=Form.useForm();
- const load=async()=>{const r=await fetch("/api/catcher-questions",{cache:"no-store"});const d=await r.json();if(d.success)setItems(d.data)}; useEffect(()=>{load()},[]);
- const save=async()=>{const v=await form.validateFields();const r=await fetch("/api/catcher-questions",{method:edit?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...v,id:edit?.id})});const d=await r.json();if(!d.success)return message.error(d.message);message.success("已保存");setFormOpen(false);setEdit(null);form.resetFields();load()};
- const remove=async(ids:number[])=>{await fetch("/api/catcher-questions",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({ids})});setSelected([]);load()};
- const chosen=useMemo(()=>items.filter(i=>selected.includes(i.id)),[items,selected]); const settings=Form.useWatch([],poster)||{}; const svg=useMemo(()=>buildPoster(chosen,settings),[chosen,settings]);
- const download=()=>{const blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});const url=URL.createObjectURL(blob);const image=new Image();image.onload=()=>{const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=Number(svg.match(/height="(\d+)"/)?.[1]||1920);canvas.getContext("2d")!.drawImage(image,0,0);canvas.toBlob(b=>{if(!b)return;const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`捕手计划一页纸-${dayjs().format("YYYYMMDD-HHmm")}.png`;a.click()},"image/png",1);URL.revokeObjectURL(url)};image.src=url};
- const columns=[{title:"提交人",dataIndex:"submitterName",width:100,render:(_:unknown,r:Item)=><div>{r.submitterName}<div style={{fontSize:12,color:"#999"}}>{r.departmentName||"管理员添加"}</div></div>},{title:"问题",dataIndex:"question",render:(v:string,r:Item)=><div><b>{v}</b><div><Tag>{r.productModel||"通用"}</Tag>{r.category&&<Tag>{r.category}</Tag>}</div></div>},{title:"答案",dataIndex:"answer",render:(v:string)=><span style={{color:v?"#334155":"#d97706"}}>{v||"待填写"}</span>},{title:"状态",dataIndex:"status",width:90,render:(v:string)=><Tag color={v==="answered"?"green":"orange"}>{v==="answered"?"已回答":"待处理"}</Tag>},{title:"操作",width:120,render:(_:unknown,r:Item)=><Space><Button type="link" icon={<EditOutlined/>} onClick={()=>{setEdit(r);form.setFieldsValue(r);setFormOpen(true)}}/><Popconfirm title="确认删除？" onConfirm={()=>remove([r.id])}><Button type="link" danger icon={<DeleteOutlined/>}/></Popconfirm></Space>}];
- return <div><Card bordered={false} style={{borderRadius:18,marginBottom:16,background:"linear-gradient(135deg,#102f9d,#2897ed)",color:"white"}}><h1 style={{color:"white",margin:0}}>捕手计划 · 问答收集和制图</h1><p style={{margin:"8px 0 0",opacity:.85}}>收集一线问题、沉淀标准答案，一键生成分享长图</p></Card><Card bordered={false} style={{borderRadius:16}}><Space wrap style={{marginBottom:16}}><Button type="primary" icon={<PlusOutlined/>} onClick={()=>{setEdit(null);form.resetFields();setFormOpen(true)}}>新增问答</Button><Button icon={<FileImageOutlined/>} disabled={!chosen.length} onClick={()=>{poster.setFieldsValue({title:"你问 · 我答 · 全员共享",date:dayjs(),questionCount:chosen.length,talkingCount:chosen.filter(i=>i.source==="talking_point").length});setPosterOpen(true)}}>选中问题制图（{chosen.length}）</Button>{selected.length>0&&<Popconfirm title="确认批量删除？" onConfirm={()=>remove(selected.map(Number))}><Button danger>批量删除</Button></Popconfirm>}</Space><Table rowKey="id" rowSelection={{selectedRowKeys:selected,onChange:setSelected}} columns={columns} dataSource={items} scroll={{x:900}} pagination={{pageSize:20}}/></Card>
- <Drawer title={edit?"编辑问答":"新增问答"} open={formOpen} width={560} onClose={()=>setFormOpen(false)} extra={<Button type="primary" onClick={save}>保存</Button>}><Form form={form} layout="vertical"><Row gutter={12}><Col span={12}><Form.Item name="productModel" label="产品型号"><Input/></Form.Item></Col><Col span={12}><Form.Item name="category" label="问题分类"><Input/></Form.Item></Col></Row><Form.Item name="source" label="内容类型" initialValue="admin"><Select options={[{value:"admin",label:"管理员问答"},{value:"talking_point",label:"新增话术"}]}/></Form.Item><Form.Item name="question" label="问题/话术" rules={[{required:true}]}><Input.TextArea rows={4}/></Form.Item><Form.Item name="answer" label="标准答案"><Input.TextArea rows={7}/></Form.Item></Form></Drawer>
- <Modal title="自动排版一页纸" open={posterOpen} onCancel={()=>setPosterOpen(false)} width={1200} footer={<Space><Button onClick={()=>setPosterOpen(false)}>关闭</Button><Button type="primary" onClick={download}>导出高清PNG</Button></Space>}><Row gutter={20}><Col xs={24} lg={8}><Form form={poster} layout="vertical"><Form.Item name="title" label="主标题"><Input/></Form.Item><Form.Item name="date" label="培训日期"><Input placeholder="例如：8月15日"/></Form.Item><Form.Item name="location" label="培训地点"><Input/></Form.Item><Form.Item name="tvTime" label="电视专场时间"><Input placeholder="15:00-16:00"/></Form.Item><Form.Item name="monitorTime" label="显示器专场时间"><Input placeholder="16:00-17:00"/></Form.Item><Form.Item label="已选择内容"><InputNumber value={chosen.length} disabled style={{width:"100%"}}/></Form.Item><p style={{color:"#64748b"}}>系统会根据问题和答案长度自动换行、调整卡片高度与长图总高度。</p></Form></Col><Col xs={24} lg={16}><div style={{height:"70vh",overflow:"auto",background:"#dcecff",padding:12,borderRadius:14}}><div style={{maxWidth:540,margin:"0 auto",boxShadow:"0 8px 30px #24538844"}} dangerouslySetInnerHTML={{__html:svg}}/></div></Col></Row></Modal></div>;
+export default function AdminCatcherPlanPage() {
+  const [items, setItems] = useState<Item[]>([]),
+    [selected, setSelected] = useState<React.Key[]>([]),
+    [edit, setEdit] = useState<Item | null>(null),
+    [formOpen, setFormOpen] = useState(false),
+    [posterOpen, setPosterOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [poster] = Form.useForm();
+  const load = async () => {
+    const r = await fetch("/api/catcher-questions", { cache: "no-store" });
+    const d = await r.json();
+    if (d.success) setItems(d.data);
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const save = async () => {
+    const v = await form.validateFields();
+    const r = await fetch("/api/catcher-questions", {
+      method: edit ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...v, id: edit?.id }),
+    });
+    const d = await r.json();
+    if (!d.success) return message.error(d.message);
+    message.success("已保存");
+    setFormOpen(false);
+    setEdit(null);
+    form.resetFields();
+    load();
+  };
+  const remove = async (ids: number[]) => {
+    await fetch("/api/catcher-questions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    setSelected([]);
+    load();
+  };
+  const chosen = useMemo(
+    () => items.filter((i) => selected.includes(i.id)),
+    [items, selected],
+  );
+  const settings = Form.useWatch([], poster) || {};
+  const svg = useMemo(() => buildPoster(chosen, settings), [chosen, settings]);
+  const download = () => {
+    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = Number(svg.match(/height="(\d+)"/)?.[1] || 1920);
+      canvas.getContext("2d")!.drawImage(image, 0, 0);
+      canvas.toBlob(
+        (b) => {
+          if (!b) return;
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(b);
+          a.download = `捕手计划一页纸-${dayjs().format("YYYYMMDD-HHmm")}.png`;
+          a.click();
+        },
+        "image/png",
+        1,
+      );
+      URL.revokeObjectURL(url);
+    };
+    image.src = url;
+  };
+  const columns = [
+    {
+      title: "提交人",
+      dataIndex: "submitterName",
+      width: 100,
+      render: (_: unknown, r: Item) => (
+        <div>
+          {r.submitterName}
+          <div style={{ fontSize: 12, color: "#999" }}>
+            {r.departmentName || "管理员添加"}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "问题",
+      dataIndex: "question",
+      render: (v: string, r: Item) => (
+        <div>
+          <b>{v}</b>
+          <div>
+            <Tag>{r.productModel || "通用"}</Tag>
+            {r.category && <Tag>{r.category}</Tag>}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "答案",
+      dataIndex: "answer",
+      render: (v: string) => (
+        <span style={{ color: v ? "#334155" : "#d97706" }}>
+          {v || "待填写"}
+        </span>
+      ),
+    },
+    {
+      title: "状态",
+      dataIndex: "status",
+      width: 90,
+      render: (v: string) => (
+        <Tag color={v === "answered" ? "green" : "orange"}>
+          {v === "answered" ? "已回答" : "待处理"}
+        </Tag>
+      ),
+    },
+    {
+      title: "操作",
+      width: 120,
+      render: (_: unknown, r: Item) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEdit(r);
+              form.setFieldsValue(r);
+              setFormOpen(true);
+            }}
+          />
+          <Popconfirm title="确认删除？" onConfirm={() => remove([r.id])}>
+            <Button type="link" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+  return (
+    <div>
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: 18,
+          marginBottom: 16,
+          background: "linear-gradient(135deg,#102f9d,#2897ed)",
+          color: "white",
+        }}
+      >
+        <h1 style={{ color: "white", margin: 0 }}>捕手计划 · 问答收集和制图</h1>
+        <p style={{ margin: "8px 0 0", opacity: 0.85 }}>
+          收集一线问题、沉淀标准答案，一键生成分享长图
+        </p>
+      </Card>
+      <Card bordered={false} style={{ borderRadius: 16 }}>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEdit(null);
+              form.resetFields();
+              setFormOpen(true);
+            }}
+          >
+            新增问答
+          </Button>
+          <Button
+            icon={<FileImageOutlined />}
+            disabled={!chosen.length}
+            onClick={() => {
+              poster.setFieldsValue({
+                title: "你问 · 我答 · 全员共享",
+                date: dayjs().format("YYYY年M月D日"),
+                questionCount: chosen.length,
+                talkingCount: chosen.filter((i) => i.source === "talking_point")
+                  .length,
+              });
+              setPosterOpen(true);
+            }}
+          >
+            选中问题制图（{chosen.length}）
+          </Button>
+          {selected.length > 0 && (
+            <Popconfirm
+              title="确认批量删除？"
+              onConfirm={() => remove(selected.map(Number))}
+            >
+              <Button danger>批量删除</Button>
+            </Popconfirm>
+          )}
+        </Space>
+        <Table
+          rowKey="id"
+          rowSelection={{ selectedRowKeys: selected, onChange: setSelected }}
+          columns={columns}
+          dataSource={items}
+          scroll={{ x: 900 }}
+          pagination={{ pageSize: 20 }}
+        />
+      </Card>
+      <Drawer
+        title={edit ? "编辑问答" : "新增问答"}
+        open={formOpen}
+        width={560}
+        onClose={() => setFormOpen(false)}
+        extra={
+          <Button type="primary" onClick={save}>
+            保存
+          </Button>
+        }
+      >
+        <Form form={form} layout="vertical">
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="productModel" label="产品型号">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="category" label="问题分类">
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="source" label="内容类型" initialValue="admin">
+            <Select
+              options={[
+                { value: "admin", label: "管理员问答" },
+                { value: "talking_point", label: "新增话术" },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            name="question"
+            label="问题/话术"
+            rules={[{ required: true }]}
+          >
+            <Input.TextArea rows={4} />
+          </Form.Item>
+          <Form.Item name="answer" label="标准答案">
+            <Input.TextArea rows={7} />
+          </Form.Item>
+        </Form>
+      </Drawer>
+      <Modal
+        title="自动排版一页纸"
+        open={posterOpen}
+        onCancel={() => setPosterOpen(false)}
+        width={1200}
+        footer={
+          <Space>
+            <Button onClick={() => setPosterOpen(false)}>关闭</Button>
+            <Button type="primary" onClick={download}>
+              导出高清PNG
+            </Button>
+          </Space>
+        }
+      >
+        <Row gutter={20}>
+          <Col xs={24} lg={8}>
+            <Form form={poster} layout="vertical">
+              <Form.Item name="title" label="主标题">
+                <Input />
+              </Form.Item>
+              <Form.Item name="date" label="培训日期">
+                <Input placeholder="例如：8月15日" />
+              </Form.Item>
+              <Form.Item name="location" label="培训地点">
+                <Input />
+              </Form.Item>
+              <Form.Item name="tvTime" label="电视专场时间">
+                <Input placeholder="15:00-16:00" />
+              </Form.Item>
+              <Form.Item name="monitorTime" label="显示器专场时间">
+                <Input placeholder="16:00-17:00" />
+              </Form.Item>
+              <Form.Item label="已选择内容">
+                <InputNumber
+                  value={chosen.length}
+                  disabled
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+              <p style={{ color: "#64748b" }}>
+                系统会根据问题和答案长度自动换行、调整卡片高度与长图总高度。
+              </p>
+            </Form>
+          </Col>
+          <Col xs={24} lg={16}>
+            <div
+              style={{
+                height: "70vh",
+                overflow: "auto",
+                background: "#dcecff",
+                padding: 12,
+                borderRadius: 14,
+              }}
+            >
+              <div
+                className="catcher-poster-preview"
+                style={{
+                  maxWidth: 540,
+                  width: "100%",
+                  margin: "0 auto",
+                  boxShadow: "0 8px 30px #24538844",
+                }}
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            </div>
+          </Col>
+        </Row>
+        <style jsx global>{`
+          .catcher-poster-preview svg {
+            display: block;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+          }
+          @media (max-width: 767px) {
+            .catcher-poster-preview {
+              min-width: 0 !important;
+            }
+          }
+        `}</style>
+      </Modal>
+    </div>
+  );
 }
