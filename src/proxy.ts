@@ -6,6 +6,8 @@ const publicPaths = [
   "/api/auth/login",
   "/api/auth/logout",
   "/api/checkin",
+  "/api/recover",
+  "/api/client-errors",
 ];
 
 // Don't verify JWT in proxy — just check presence of token cookie.
