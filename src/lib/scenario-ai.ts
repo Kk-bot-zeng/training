@@ -78,9 +78,25 @@ export function parseAiJson(text: string) {
     .replace(/^\uFEFF/, "")
     .trim();
   const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("AI没有返回有效结构");
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (start < 0) throw new Error("AI没有返回有效结构");
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < cleaned.length; index++) {
+    const char = cleaned[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{") depth++;
+    else if (char === "}" && --depth === 0) {
+      return JSON.parse(cleaned.slice(start, index + 1));
+    }
+  }
+  throw new Error("AI没有返回完整结构");
 }
 
 export const scenarioScriptShape = `只输出JSON：{"name":"剧本名称","customerProfile":"客户身份、场景、显性需求、隐藏需求、预算、性格","trainingGoal":"训练目标","forbiddenRules":"禁止错误承诺和敏感话术","openingMessage":"AI客户第一句话","nodes":[{"name":"节点名称","customerBehavior":"该阶段客户表现与可动态追问","learnerGoal":"学员需完成的目标","passCondition":"进入下一节点的判断条件","referenceTalking":"参考优秀话术"}],"scoringCriteria":[{"name":"评分项","weight":数字,"description":"评分标准"}]}`;
