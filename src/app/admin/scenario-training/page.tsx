@@ -123,7 +123,8 @@ export default function ScenarioAdmin() {
       if (!d.success) throw new Error(d.message);
       form.setFieldsValue(d.data);
       setStep(1);
-      message.success("AI剧本已生成，请审核修改");
+      if (d.fallback) message.warning(d.message || "已生成可编辑的基础剧本，请审核修改");
+      else message.success(d.retried ? "AI剧本已重新生成，请审核修改" : "AI剧本已生成，请审核修改");
     } catch (e) {
       message.error(e instanceof Error ? e.message : "生成失败");
     } finally {
