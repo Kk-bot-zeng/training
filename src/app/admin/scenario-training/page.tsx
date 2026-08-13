@@ -232,6 +232,21 @@ export default function ScenarioAdmin() {
     message.success(`剧本“${script.name}”已删除`);
     await load();
   };
+  const deleteGroup = async (group: Group) => {
+    const d = await fetch("/api/scenario/groups", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: group.id }),
+    }).then((x) => x.json());
+    if (!d.success) return message.error(d.message);
+    if (selectedGroup === String(group.id)) setSelectedGroup("all");
+    message.success(
+      d.ungroupedCount
+        ? `分组已删除，${d.ungroupedCount}个剧本已移至未分组`
+        : "分组已删除",
+    );
+    await load();
+  };
   const scriptCols = [
     { title: "剧本名称", dataIndex: "name" },
     {
@@ -398,7 +413,31 @@ export default function ScenarioAdmin() {
                           children: [
                             ...groups.map((g) => ({
                               key: String(g.id),
-                              title: `${g.name}（${g._count?.scripts || 0}）`,
+                              title: (
+                                <Space
+                                  size={4}
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  <span>{`${g.name}（${g._count?.scripts || 0}）`}</span>
+                                  <Popconfirm
+                                    title="确认删除分组？"
+                                    description={
+                                      g._count?.scripts
+                                        ? "分组内的剧本会移至未分组，不会被删除。"
+                                        : "删除后不可恢复。"
+                                    }
+                                    onConfirm={() => deleteGroup(g)}
+                                  >
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      danger
+                                      aria-label={`删除分组${g.name}`}
+                                      icon={<DeleteOutlined />}
+                                    />
+                                  </Popconfirm>
+                                </Space>
+                              ),
                               children: scripts
                                 .filter((s) => s.groupId === g.id)
                                 .map((s) => ({
