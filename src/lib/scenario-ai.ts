@@ -1,6 +1,8 @@
 type AiMessage = { role: "system" | "user" | "assistant"; content: string };
 
-export async function callScenarioAi(messages: AiMessage[], json = false) {
+type ScenarioAiOptions = { maxTokens?: number; temperature?: number; timeoutMs?: number };
+
+export async function callScenarioAi(messages: AiMessage[], json = false, options: ScenarioAiOptions = {}) {
   const apiKey = process.env.TURING_API_KEY;
   if (!apiKey) throw new Error("AI服务尚未配置");
   const baseUrl = (process.env.TURING_BASE_URL || "https://live-turing.cn.llm.tcljd.com/api/v1").replace(/\/$/, "");
@@ -8,8 +10,8 @@ export async function callScenarioAi(messages: AiMessage[], json = false) {
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, temperature: 0.35, max_tokens: 5000, ...(json ? { response_format: { type: "json_object" } } : {}) }),
-    signal: AbortSignal.timeout(120_000),
+    body: JSON.stringify({ model, messages, temperature: options.temperature ?? 0.25, max_tokens: options.maxTokens ?? 1800, ...(json ? { response_format: { type: "json_object" } } : {}) }),
+    signal: AbortSignal.timeout(options.timeoutMs ?? 90_000),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(data?.error?.message || data?.message || "AI服务调用失败");
