@@ -17,7 +17,16 @@ export function proxy(request: NextRequest) {
 
   // Allow public paths
   if (publicPaths.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (pathname === "/login") {
+      response.headers.set(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, max-age=0",
+      );
+      response.headers.set("Pragma", "no-cache");
+      response.headers.set("Expires", "0");
+    }
+    return response;
   }
 
   // Allow static assets
@@ -26,12 +35,19 @@ export function proxy(request: NextRequest) {
   }
 
   // Protect pages & API routes
-  if (pathname.startsWith("/admin") || pathname.startsWith("/portal") || pathname.startsWith("/api/")) {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/portal") ||
+    pathname.startsWith("/api/")
+  ) {
     const token = request.cookies.get("token")?.value;
 
     if (!token) {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ success: false, message: "未登录" }, { status: 401 });
+        return NextResponse.json(
+          { success: false, message: "未登录" },
+          { status: 401 },
+        );
       }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);

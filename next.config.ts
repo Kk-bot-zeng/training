@@ -7,7 +7,12 @@ const nextConfig: NextConfig = {
       {
         source: "/login",
         headers: [
-          { key: "Cache-Control", value: "public, max-age=300, stale-while-revalidate=60" },
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, max-age=0",
+          },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
         ],
       },
     ];
