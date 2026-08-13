@@ -15,10 +15,16 @@ export default function ScenarioChat() {
   const [result, setResult] = useState<any>();
   const [remaining, setRemaining] = useState<number>();
   const bottom = useRef<HTMLDivElement>(null);
-  const load = () => fetch(`/api/scenario/sessions/${id}`, { cache: "no-store" }).then(r => r.json()).then(d => {
-    if (d.success) { setData(d.data); if (d.data.feedback) setResult(d.data.feedback); }
-    else message.error(d.message);
-  });
+  const load = async () => {
+    try {
+      const response = await fetch(`/api/scenario/sessions/${id}`, { cache: "no-store" });
+      const d = await response.json();
+      if (!d.success) throw new Error(d.message || "演练加载失败");
+      setData(d.data); if (d.data.feedback) setResult(d.data.feedback);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "演练加载失败，请稍后重试");
+    }
+  };
   useEffect(() => { load(); }, [id]);
   useEffect(() => {
     if (!data?.startedAt || !data?.task?.durationMinutes || result) return;
@@ -35,8 +41,25 @@ export default function ScenarioChat() {
       const response = await fetch(`/api/scenario/sessions/${id}/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: current }) });
       const responseData = await response.json();
       if (!responseData.success) throw new Error(responseData.message);
-      await load();
-    } catch (error) { message.error(error instanceof Error ? error.message : "发送失败"); await load(); }
+      setData((value: any) => ({
+        ...value,
+        currentNode: responseData.data.currentNode,
+        messages: [...value.messages, {
+          role: "assistant",
+          content: responseData.data.reply,
+          time: new Date().toISOString(),
+        }],
+      }));
+    } catch (error) {
+      setData((value: any) => ({
+        ...value,
+        messages: value.messages.filter((item: any, index: number) =>
+          index !== value.messages.length - 1 || item.role !== "user" || item.content !== current
+        ),
+      }));
+      setText(current);
+      message.error(error instanceof Error ? error.message : "发送失败，请稍后重试");
+    }
     finally { setSending(false); }
   };
   const submit = async () => {
