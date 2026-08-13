@@ -14,7 +14,7 @@ export default function ScenarioChat() {
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState<any>();
   const [remaining, setRemaining] = useState<number>();
-  const bottom = useRef<HTMLDivElement>(null);
+  const chatBox = useRef<HTMLDivElement>(null);
   const load = async () => {
     try {
       const response = await fetch(`/api/scenario/sessions/${id}`, { cache: "no-store" });
@@ -31,7 +31,11 @@ export default function ScenarioChat() {
     const update = () => setRemaining(Math.max(0, data.task.durationMinutes * 60 - Math.floor((Date.now() - new Date(data.startedAt).getTime()) / 1000)));
     update(); const timer = window.setInterval(update, 1000); return () => window.clearInterval(timer);
   }, [data?.startedAt, data?.task?.durationMinutes, result]);
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [data?.messages?.length]);
+  useEffect(() => {
+    const box = chatBox.current;
+    if (!box) return;
+    box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+  }, [data?.messages?.length, sending]);
   const send = async () => {
     if (!text.trim() || sending) return;
     const current = text; setText("");
@@ -88,13 +92,13 @@ export default function ScenarioChat() {
       <Progress percent={nodes.length ? Math.round(data.currentNode / nodes.length * 100) : 0} showInfo={false} />
     </Card>
     <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 16, overflow: "hidden" }}>
-      <div style={{ height: "55vh", overflowY: "auto", padding: 16, background: "#f4f7fb" }}>
+      <div ref={chatBox} style={{ height: "55vh", overflowY: "auto", padding: 16, background: "#f4f7fb", overscrollBehavior: "contain" }}>
         {data.messages.map((item: any, index: number) => <div key={index} style={{ display: "flex", justifyContent: item.role === "user" ? "flex-end" : "flex-start", gap: 8, marginBottom: 16 }}>
           {item.role !== "user" && <Avatar icon={<RobotOutlined />} style={{ background: "#1677ff" }} />}
           <div style={{ maxWidth: "78%", background: item.role === "user" ? "#1677ff" : "white", color: item.role === "user" ? "white" : "#1e293b", padding: "11px 14px", borderRadius: 14, boxShadow: "0 1px 3px #0001", whiteSpace: "pre-wrap" }}>{typeof item.content === "string" ? item.content : JSON.stringify(item.content ?? "")}</div>
           {item.role === "user" && <Avatar icon={<UserOutlined />} />}
         </div>)}
-        {sending && <div style={{ color: "#64748b" }}><RobotOutlined /> 客户正在思考…</div>}<div ref={bottom} />
+        {sending && <div style={{ color: "#64748b", padding: "6px 0" }}><RobotOutlined /> 消息已发送，客户正在回复…</div>}
       </div>
       <div style={{ padding: 14, borderTop: "1px solid #e5e7eb" }}>
         <Space.Compact style={{ width: "100%" }}><Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} value={text} onChange={event => setText(event.target.value)} onKeyDownCapture={event => {

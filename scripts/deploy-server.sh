@@ -21,12 +21,6 @@ set -a
 set +a
 npx next build
 
-# Keep hashed assets from the previous version so pages opened before the
-# deployment continue to work until users naturally refresh them.
-if [ -d "$resolved_current/.next/static" ]; then
-  rsync -a --ignore-existing "$resolved_current/.next/static/" "$release/.next/static/"
-fi
-
 ln -sfn "$release" "$root/app.next"
 mv -Tf "$root/app.next" "$current"
 
