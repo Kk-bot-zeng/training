@@ -50,13 +50,13 @@ const esc = (v: string) =>
         "'": "&apos;",
       })[c]!,
   );
-const wrap = (text: string, size = 22, max = 42) => {
+const wrap = (text: string, size = 22, max = 42, x = 92) => {
   const chars = [...text];
   const rows: string[] = [];
   while (chars.length) rows.push(chars.splice(0, max).join(""));
   return rows
     .map(
-      (r, i) => `<tspan x="92" dy="${i ? size * 1.55 : 0}">${esc(r)}</tspan>`,
+      (r, i) => `<tspan x="${x}" dy="${i ? size * 1.55 : 0}">${esc(r)}</tspan>`,
     )
     .join("");
 };
@@ -73,23 +73,25 @@ function buildPoster(items: Item[], settings: Record<string, string | number>) {
     date: dateText,
     location: String(settings.location || "待定").slice(0, 30),
   };
-  const cards = items.map((item) =>
-    Math.max(
-      190,
-      120 +
-        Math.ceil(item.question.length / 42) * 34 +
-        Math.ceil((item.answer || "待补充答案").length / 45) * 31,
-    ),
-  );
+  const cards = items.map((item) => {
+    const questionLines = Math.max(1, Math.ceil(item.question.length / 34));
+    const answerLines = Math.max(
+      1,
+      Math.ceil((item.answer || "待补充答案").length / 44),
+    );
+    return Math.max(220, 130 + questionLines * 37 + answerLines * 33);
+  });
   const height = header + cards.reduce((a, b) => a + b + cardGap, 0) + 100;
   let y = header;
   const body = items
     .map((item, index) => {
       const h = cards[index];
-      const qy = y + 62;
-      const ay =
-        qy + Math.max(38, Math.ceil(item.question.length / 42) * 34) + 35;
-      const out = `<g><rect x="55" y="${y}" width="970" height="${h}" rx="24" fill="#fff" stroke="#b8dcff" stroke-width="2"/><rect x="55" y="${y}" width="12" height="${h}" rx="6" fill="#1478ee"/><rect x="82" y="${y + 24}" width="54" height="38" rx="12" fill="#0878ee"/><text x="109" y="${y + 50}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${String(index + 1).padStart(2, "0")}</text><text x="92" y="${qy}" fill="#143a70" font-size="24" font-weight="700">${wrap(item.question, 24, 38)}</text><line x1="92" y1="${ay - 25}" x2="990" y2="${ay - 25}" stroke="#d7eafa"/><text x="92" y="${ay}" fill="#487095" font-size="21"><tspan font-weight="700" fill="#1674d8">参考答案：</tspan>${wrap(item.answer || "待补充答案", 21, 44)}</text></g>`;
+      const questionLines = Math.max(1, Math.ceil(item.question.length / 34));
+      const qy = y + 52;
+      const dividerY = qy + questionLines * 37 + 10;
+      const labelY = dividerY + 38;
+      const answerY = labelY + 35;
+      const out = `<g><rect x="55" y="${y}" width="970" height="${h}" rx="24" fill="#fff" stroke="#b8dcff" stroke-width="2"/><rect x="55" y="${y}" width="12" height="${h}" rx="6" fill="#1478ee"/><rect x="82" y="${y + 24}" width="54" height="38" rx="12" fill="#0878ee"/><text x="109" y="${y + 50}" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${String(index + 1).padStart(2, "0")}</text><text x="155" y="${qy}" fill="#143a70" font-size="24" font-weight="700">${wrap(item.question, 24, 34, 155)}</text><line x1="92" y1="${dividerY}" x2="990" y2="${dividerY}" stroke="#d7eafa"/><text x="92" y="${labelY}" fill="#1674d8" font-size="21" font-weight="700">参考答案：</text><text x="92" y="${answerY}" fill="#487095" font-size="21">${wrap(item.answer || "待补充答案", 21, 44, 92)}</text></g>`;
       y += h + cardGap;
       return out;
     })
