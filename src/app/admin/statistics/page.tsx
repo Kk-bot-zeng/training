@@ -16,10 +16,10 @@ import { DownloadOutlined } from "@ant-design/icons";
 import type { Training, DepartmentRate, Employee } from "@/types";
 
 const statusColors: Record<string, string> = {
-  present: "green",
-  late: "orange",
-  leave: "blue",
-  absent: "red",
+  present: "default",
+  late: "default",
+  leave: "default",
+  absent: "default",
 };
 const statusLabels: Record<string, string> = {
   present: "出席",
@@ -140,7 +140,7 @@ export default function StatisticsPage() {
       dataIndex: "rate",
       key: "rate",
       render: (r: string) => (
-        <Tag color={parseFloat(r) >= 90 ? "green" : parseFloat(r) >= 70 ? "orange" : "red"}>
+        <Tag className="mono-status-tag" color="default">
           {r}
         </Tag>
       ),
@@ -154,7 +154,7 @@ export default function StatisticsPage() {
       dataIndex: ["training", "type"],
       key: "type",
       render: (t: string) => (
-        <Tag color={t === "exam" ? "red" : "blue"}>
+        <Tag className="mono-status-tag" color="default">
           {t === "exam" ? "考试" : "培训"}
         </Tag>
       ),
@@ -170,7 +170,7 @@ export default function StatisticsPage() {
       dataIndex: "status",
       key: "status",
       render: (s: string) => (
-        <Tag color={statusColors[s]}>{statusLabels[s]}</Tag>
+        <Tag className="mono-status-tag" color={statusColors[s]}>{statusLabels[s]}</Tag>
       ),
     },
   ];
@@ -210,19 +210,19 @@ export default function StatisticsPage() {
                 <Statistic title="总人数" value={rateData.total as number} />
               </Col>
               <Col xs={12} sm={4}>
-                <Statistic title="出席" value={rateData.present as number} valueStyle={{ color: "#52c41a" }} />
+                <Statistic title="出席" value={rateData.present as number} valueStyle={{ color: "#111820" }} />
               </Col>
               <Col xs={12} sm={4}>
-                <Statistic title="迟到" value={rateData.late as number} valueStyle={{ color: "#faad14" }} />
+                <Statistic title="迟到" value={rateData.late as number} valueStyle={{ color: "#65727d" }} />
               </Col>
               <Col xs={12} sm={4}>
-                <Statistic title="请假" value={rateData.leave as number} valueStyle={{ color: "#1677ff" }} />
+                <Statistic title="请假" value={rateData.leave as number} valueStyle={{ color: "#3e4b56" }} />
               </Col>
               <Col xs={12} sm={4}>
-                <Statistic title="缺勤" value={rateData.absent as number} valueStyle={{ color: "#ff4d4f" }} />
+                <Statistic title="缺勤" value={rateData.absent as number} valueStyle={{ color: "#8a959d" }} />
               </Col>
               <Col xs={12} sm={4}>
-                <Statistic title="出勤率" value={rateData.presentRate as string} valueStyle={{ color: "#722ed1" }} />
+                <Statistic title="出勤率" value={rateData.presentRate as string} valueStyle={{ color: "#111820" }} />
               </Col>
             </Row>
 
@@ -293,13 +293,13 @@ export default function StatisticsPage() {
                 <Statistic title="参加培训总数" value={(empHistory.summary as Record<string, number>).total} />
               </Col>
               <Col span={6}>
-                <Statistic title="出勤次数" value={(empHistory.summary as Record<string, number>).attended} valueStyle={{ color: "#52c41a" }} />
+                <Statistic title="出勤次数" value={(empHistory.summary as Record<string, number>).attended} valueStyle={{ color: "#111820" }} />
               </Col>
               <Col span={6}>
-                <Statistic title="缺勤次数" value={(empHistory.summary as Record<string, number>).absent} valueStyle={{ color: "#ff4d4f" }} />
+                <Statistic title="缺勤次数" value={(empHistory.summary as Record<string, number>).absent} valueStyle={{ color: "#8a959d" }} />
               </Col>
               <Col span={6}>
-                <Statistic title="出勤率" value={(empHistory.summary as Record<string, unknown>).rate as string} valueStyle={{ color: "#722ed1" }} />
+                <Statistic title="出勤率" value={(empHistory.summary as Record<string, unknown>).rate as string} valueStyle={{ color: "#111820" }} />
               </Col>
             </Row>
 

@@ -910,3 +910,18 @@ body {
 .mobile-menu-panel { background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(22px); }
 .ocean-mobile-drawer .ant-drawer-content { background: rgba(255, 255, 255, 0.88) !important; }
 .route-loading-spinner { border-color: rgba(17, 24, 32, 0.12); border-top-color: #111820; }
+
+/* Keep data visualizations in the same monochrome art direction. */
+.admin-shell .ant-tag,
+.portal-shell .ant-tag,
+.mono-status-tag {
+  color: #111820 !important;
+  background: rgba(17, 24, 32, 0.07) !important;
+  border-color: rgba(17, 24, 32, 0.14) !important;
+}
+.admin-shell .ant-progress-bg,
+.portal-shell .ant-progress-bg { background: #111820 !important; }
+.admin-shell .ant-progress-inner,
+.portal-shell .ant-progress-inner { background: rgba(17, 24, 32, 0.1) !important; }
+.admin-shell .ant-statistic-content,
+.portal-shell .ant-statistic-content { color: #111820 !important; }
