@@ -26,10 +26,10 @@ const DepartmentRateChart = dynamic(
 );
 
 const statCards = [
-  { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "#173ec8", iconBg: "#edf2ff", iconColor: "#173ec8", suffix: "人" },
-  { key: "totalTrainingsThisMonth", title: "所选期间培训", icon: <BookOutlined />, gradient: "#315ce0", iconBg: "#eef3ff", iconColor: "#315ce0", suffix: "场" },
-  { key: "avgAttendanceRate", title: "平均出勤率", icon: <PercentageOutlined />, gradient: "#5477e8", iconBg: "#f0f4ff", iconColor: "#5477e8", suffix: "%" },
-  { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "#7792ed", iconBg: "#f3f6ff", iconColor: "#607fe3", suffix: "个" },
+  { key: "totalEmployees", title: "在职员工", icon: <TeamOutlined />, gradient: "#111820", iconBg: "rgba(17,24,32,.07)", iconColor: "#111820", suffix: "人" },
+  { key: "totalTrainingsThisMonth", title: "所选期间培训", icon: <BookOutlined />, gradient: "#111820", iconBg: "rgba(17,24,32,.07)", iconColor: "#111820", suffix: "场" },
+  { key: "avgAttendanceRate", title: "平均出勤率", icon: <PercentageOutlined />, gradient: "#111820", iconBg: "rgba(17,24,32,.07)", iconColor: "#111820", suffix: "%" },
+  { key: "activeDepartments", title: "部门总数", icon: <ApartmentOutlined />, gradient: "#111820", iconBg: "rgba(17,24,32,.07)", iconColor: "#111820", suffix: "个" },
 ];
 
 export default function DashboardPage() {
@@ -107,7 +107,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={14}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <RiseOutlined style={{ color: "#6384ff", fontSize: 18 }} />
+              <RiseOutlined style={{ color: "#111820", fontSize: 18 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤率趋势</h3>
               <span style={{ fontSize: 12, color: "#9ca3af" }}>{overviewRange ? "所选期间按月" : "本月"}</span>
             </div>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
         {/* 部门出勤对比 */}
         <Col xs={24} lg={10}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>🏆 部门出勤率对比</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>部门出勤率对比</h3>
             <DepartmentRateChart data={deptRank} />
           </div>
         </Col>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         <Col xs={24} md={8}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
-              <CrownOutlined style={{ color: "#f59e0b", fontSize: 16 }} />
+              <CrownOutlined style={{ color: "#111820", fontSize: 16 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>出勤之星 TOP5</h3>
             </div>
             <div style={{ maxHeight: 316, overflowY: "auto", paddingRight: 4, overscrollBehavior: "contain" }}>
@@ -138,14 +138,14 @@ export default function DashboardPage() {
               <div style={{ padding: "28px 0", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>暂无可统计的完成培训考勤数据</div>
             ) : attendanceStars.map((emp, i) => (
               <div key={emp.employeeId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: i < attendanceStars.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : i === 2 ? "#d97706" : "#9ca3af", width: 24, textAlign: "center" }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: "#111820", width: 24, textAlign: "center" }}>
                   {emp.rank}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#1f2937", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{emp.name}</p>
                   <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>{emp.dept} · 参加{emp.total}次</p>
                 </div>
-                <Tag color={emp.rate >= 95 ? "success" : emp.rate >= 85 ? "processing" : "warning"} style={{ borderRadius: 8 }}>{emp.rate}%</Tag>
+                <Tag className="mono-status-tag" color="default" style={{ borderRadius: 8 }}>{emp.rate}%</Tag>
               </div>
             ))}
             </div>
@@ -156,13 +156,13 @@ export default function DashboardPage() {
         <Col xs={24} md={8}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>📅 近期培训</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: 0 }}>近期培训</h3>
               <span onClick={() => router.push("/admin/trainings")} style={{ fontSize: 13, color: "#6384ff", cursor: "pointer", fontWeight: 500 }}>查看全部 →</span>
             </div>
             <div style={{ maxHeight: 316, overflowY: "auto", paddingRight: 4, overscrollBehavior: "contain" }}><Table<{ id: string; title: string; date: string; rate: number | null }> dataSource={(stats?.recentTrainings || []) as unknown as { id: string; title: string; date: string; rate: number | null }[]} columns={[
               { title: "名称", dataIndex: "title", key: "title", ellipsis: true },
               { title: "日期", dataIndex: "date", key: "date", width: 100, render: (d: string) => new Date(d).toLocaleDateString("zh-CN") },
-              { title: "出勤率", dataIndex: "rate", key: "rate", width: 80, render: (r: number | null) => <Tag color={r !== null && r >= 90 ? "success" : r !== null && r >= 70 ? "warning" : "error"} style={{ borderRadius: 8 }}>{r ?? 0}%</Tag> },
+              { title: "出勤率", dataIndex: "rate", key: "rate", width: 80, render: (r: number | null) => <Tag className="mono-status-tag" color="default" style={{ borderRadius: 8 }}>{r ?? 0}%</Tag> },
             ]} rowKey="id" pagination={false} size="small" showHeader={false}
               onRow={(r: { id: string }) => ({ onClick: () => r.id.startsWith("training-") ? router.push(`/admin/trainings/${r.id.replace("training-", "")}`) : router.push("/admin/training-records"), style: { cursor: "pointer" } })}
               locale={{ emptyText: "暂无培训" }} /></div>
@@ -172,10 +172,10 @@ export default function DashboardPage() {
         {/* 快捷操作 */}
         <Col xs={24} md={8}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>⚡ 快捷操作</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#1f2937", margin: "0 0 16px" }}>快捷操作</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button onClick={() => router.push("/admin/trainings/create")}
-                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "14px 16px", border: "none", borderRadius: 10, background: "#173ec8", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s" }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "14px 16px", border: "none", borderRadius: 10, background: "#111820", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "opacity 0.2s" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.9"} onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                 <PlusOutlined /> 创建新培训
               </button>
