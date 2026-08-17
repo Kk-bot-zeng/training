@@ -16,6 +16,18 @@ rsync -a \
 cp -al "$resolved_current/node_modules" "$release/node_modules"
 
 cd "$release"
+
+# A misplaced route layout can still compile, but it nests the learner shell
+# around the admin shell and causes repeated auth redirects/flicker. Refuse to
+# publish a release unless every layout is in its intended scope.
+grep -q 'function RootLayout' src/app/layout.tsx
+if grep -Eq 'admin-shell|portal-shell' src/app/layout.tsx; then
+  echo "Invalid root layout: route shell found in src/app/layout.tsx" >&2
+  exit 1
+fi
+grep -q 'className="admin-shell"' src/app/admin/layout.tsx
+grep -q 'className="portal-shell"' src/app/portal/layout.tsx
+
 set -a
 . ./.env.production
 set +a
