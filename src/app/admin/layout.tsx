@@ -280,7 +280,10 @@ export default function AdminLayout({
           collapsed={collapsed}
           width={240}
           className="ocean-sider desktop-sider"
-          style={{ borderRight: "none" }}
+          style={{
+            borderRight: "1px solid rgba(24, 43, 59, 0.14)",
+            background: "rgba(255, 255, 255, 0.74)",
+          }}
         >
           <div
             className="ocean-brand"
@@ -343,8 +346,17 @@ export default function AdminLayout({
           </div>
         </Drawer>
 
-        <Layout className="ocean-workspace">
-          <div className="ocean-topbar">
+        <Layout className="ocean-workspace" style={{ minWidth: 0 }}>
+          <div
+            className="ocean-topbar"
+            style={{
+              height: 64,
+              padding: "0 28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <Button
                 className="desktop-menu-button"
@@ -402,7 +414,16 @@ export default function AdminLayout({
               </div>
             </Dropdown>
           </div>
-          <Content className="ocean-content">{children}</Content>
+          <Content
+            className="ocean-content"
+            style={{
+              minWidth: 0,
+              padding: "28px 30px",
+              overflow: "auto",
+            }}
+          >
+            {children}
+          </Content>
         </Layout>
       </Layout>
     </ConfigProvider>
