@@ -797,3 +797,116 @@ body {
   border-radius: 50%;
   animation: route-loading-spin 0.7s linear infinite;
 }
+
+/* Premium transparent monochrome education workspace */
+:root {
+  --brand-700: #111820;
+  --brand-600: #111820;
+  --brand-500: #111820;
+  --brand-100: rgba(17, 24, 32, 0.08);
+  --brand-50: rgba(255, 255, 255, 0.58);
+  --ocean-950: #111820;
+  --ocean-900: rgba(255, 255, 255, 0.72);
+  --ocean-800: rgba(255, 255, 255, 0.58);
+  --ocean-700: rgba(17, 24, 32, 0.1);
+  --ocean-50: #edf2f5;
+  --mint-500: #111820;
+  --mint-400: #111820;
+  --ink: #101820;
+  --muted: #65727d;
+  --line: rgba(24, 43, 59, 0.16);
+  --surface: rgba(255, 255, 255, 0.64);
+  --shadow: 0 18px 50px rgba(26, 37, 46, 0.08);
+}
+
+body {
+  background: linear-gradient(130deg, #ffffff 0%, #edf2f5 48%, #dfe8ed 100%);
+  color: #101820;
+}
+
+.ocean-sider.ant-layout-sider {
+  background: rgba(255, 255, 255, 0.48) !important;
+  border-right: 1px solid rgba(24, 43, 59, 0.14) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(18px);
+}
+.ocean-brand {
+  border-bottom-color: rgba(24, 43, 59, 0.12) !important;
+}
+.ocean-sider .ant-menu,
+.ocean-sider .ant-menu-sub,
+.mobile-menu-panel .ant-menu,
+.mobile-menu-panel .ant-menu-sub {
+  background: transparent !important;
+}
+.ocean-sider .ant-menu-item,
+.mobile-menu-panel .ant-menu-item {
+  color: #46535e !important;
+  border-radius: 7px !important;
+}
+.ocean-sider .ant-menu-item-selected,
+.mobile-menu-panel .ant-menu-item-selected {
+  color: #101820 !important;
+  background: rgba(17, 24, 32, 0.08) !important;
+  box-shadow: inset 2px 0 #111820 !important;
+}
+.ocean-sider .ant-menu-item-group-title,
+.mobile-menu-panel .ant-menu-item-group-title {
+  color: #74818b !important;
+}
+.ocean-workspace { background: rgba(255, 255, 255, 0.18) !important; }
+.ocean-topbar {
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-bottom-color: rgba(24, 43, 59, 0.14) !important;
+  backdrop-filter: blur(18px);
+}
+.ocean-content {
+  background: rgba(255, 255, 255, 0.24) !important;
+  background-image: radial-gradient(rgba(17, 24, 32, 0.045) 1px, transparent 1px) !important;
+  background-size: 22px 22px !important;
+}
+.admin-shell .ant-card,
+.portal-shell .ant-card,
+.admin-shell .ant-table-wrapper,
+.portal-shell .ant-table-wrapper {
+  background: rgba(255, 255, 255, 0.64) !important;
+  border: 1px solid rgba(24, 43, 59, 0.14) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 14px 40px rgba(26, 37, 46, 0.055) !important;
+  backdrop-filter: blur(14px);
+}
+.admin-shell .ant-card-head,
+.portal-shell .ant-card-head,
+.admin-shell .ant-table-thead > tr > th,
+.portal-shell .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.42) !important;
+  border-bottom-color: rgba(24, 43, 59, 0.12) !important;
+}
+.admin-shell .ant-table-tbody > tr:hover > td,
+.portal-shell .ant-table-tbody > tr:hover > td { background: rgba(17, 24, 32, 0.045) !important; }
+.admin-shell .ant-btn-primary,
+.portal-shell .ant-btn-primary {
+  background: rgba(17, 24, 32, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 7px 18px rgba(17, 24, 32, 0.12) !important;
+}
+.admin-shell .ant-btn-primary:hover,
+.portal-shell .ant-btn-primary:hover { background: #000 !important; }
+.admin-shell .ant-input,
+.admin-shell .ant-select-selector,
+.admin-shell .ant-picker,
+.admin-shell .ant-input-number,
+.portal-shell .ant-input,
+.portal-shell .ant-select-selector,
+.portal-shell .ant-picker,
+.portal-shell .ant-input-number {
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: rgba(24, 43, 59, 0.17) !important;
+}
+.admin-shell .ant-input:focus,
+.admin-shell .ant-select-focused .ant-select-selector,
+.portal-shell .ant-input:focus,
+.portal-shell .ant-select-focused .ant-select-selector { border-color: #111820 !important; box-shadow: 0 0 0 2px rgba(17, 24, 32, 0.08) !important; }
+.mobile-menu-panel { background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(22px); }
+.ocean-mobile-drawer .ant-drawer-content { background: rgba(255, 255, 255, 0.88) !important; }
+.route-loading-spinner { border-color: rgba(17, 24, 32, 0.12); border-top-color: #111820; }
