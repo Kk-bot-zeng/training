@@ -1,26 +1,27 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import { cookies } from "next/headers";
+import {
+  AUTH_SESSION_VERSION,
+  verifySessionToken,
+  type SessionPayload,
+} from "@/lib/session";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "training-attendance-secret-key"
 );
 
-export interface AuthPayload {
-  id: number;
-  username: string;
-  role: "admin" | "employee";
-}
+export type AuthPayload = SessionPayload;
 
 export async function signToken(payload: AuthPayload): Promise<string> {
-  return new SignJWT({ ...payload })
+  return new SignJWT({ ...payload, sessionVersion: AUTH_SESSION_VERSION })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
     .setExpirationTime("7d")
     .sign(JWT_SECRET);
 }
 
 export async function verifyToken(token: string): Promise<AuthPayload> {
-  const { payload } = await jwtVerify(token, JWT_SECRET);
-  return payload as unknown as AuthPayload;
+  return verifySessionToken(token);
 }
 
 export async function getAuthAdmin(): Promise<AuthPayload> {

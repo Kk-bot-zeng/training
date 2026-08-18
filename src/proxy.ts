@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifySessionToken } from "@/lib/session";
 
 const publicPaths = [
   "/login",
@@ -10,9 +11,18 @@ const publicPaths = [
   "/api/client-errors",
 ];
 
-// Don't verify JWT in proxy — just check presence of token cookie.
-// Actual JWT verification is done in API route handlers via getAuthUser/getAuthAdmin.
-export function proxy(request: NextRequest) {
+function clearInvalidSession(response: NextResponse) {
+  response.cookies.set("token", "", {
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+  });
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  return response;
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
@@ -53,8 +63,29 @@ export function proxy(request: NextRequest) {
       loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(loginUrl);
     }
-    // Token exists — let the route handler verify it
-    return NextResponse.next();
+    try {
+      const session = await verifySessionToken(token);
+
+      if (pathname.startsWith("/admin") && session.role !== "admin") {
+        return NextResponse.redirect(new URL("/portal", request.url));
+      }
+      if (pathname.startsWith("/portal") && session.role !== "employee") {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+
+      // Route handlers still enforce their own fine-grained authorization.
+      return NextResponse.next();
+    } catch {
+      if (pathname.startsWith("/api/")) {
+        return clearInvalidSession(NextResponse.json(
+          { success: false, message: "登录已失效，请重新登录" },
+          { status: 401 },
+        ));
+      }
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return clearInvalidSession(NextResponse.redirect(loginUrl));
+    }
   }
 
   return NextResponse.next();
