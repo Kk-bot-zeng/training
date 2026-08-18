@@ -46,6 +46,7 @@ export async function proxy(request: NextRequest) {
 
   // Protect pages & API routes
   if (
+    pathname === "/" ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/portal") ||
     pathname.startsWith("/api/")
@@ -65,6 +66,13 @@ export async function proxy(request: NextRequest) {
     }
     try {
       const session = await verifySessionToken(token);
+
+      if (pathname === "/") {
+        return NextResponse.redirect(new URL(
+          session.role === "admin" ? "/admin" : "/portal",
+          request.url,
+        ));
+      }
 
       if (pathname.startsWith("/admin") && session.role !== "admin") {
         return NextResponse.redirect(new URL("/portal", request.url));
@@ -92,5 +100,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/portal/:path*", "/api/:path*"],
+  matcher: ["/", "/admin/:path*", "/portal/:path*", "/api/:path*"],
 };
