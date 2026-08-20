@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthAdmin } from "@/lib/auth";
+import { isObjectiveAnswerCorrect } from "@/lib/exam-answer";
 
 type StoredAnswer = {
   questionId: number;
@@ -9,29 +10,6 @@ type StoredAnswer = {
   score: number;
   manuallyGraded?: boolean;
 };
-
-function normalizeSingle(value: string): string {
-  const normalized = value.trim().toUpperCase();
-  const optionLetter = normalized.match(/^([A-Z])(?:[.、:：\s]|$)/);
-  return optionLetter ? optionLetter[1] : normalized;
-}
-
-function isCorrect(type: string, userAnswer: string, correctAnswer: string): boolean {
-  if (type === "multi") {
-    const normalize = (value: string) => value.split(/[,，、]/).map(normalizeSingle).filter(Boolean).sort().join(",");
-    return normalize(userAnswer) === normalize(correctAnswer);
-  }
-  if (type === "judge") {
-    const normalize = (value: string) => {
-      const answer = value.trim().toLowerCase();
-      if (["正确", "对", "是", "true", "yes", "√"].includes(answer)) return "true";
-      if (["错误", "错", "否", "false", "no", "×", "x"].includes(answer)) return "false";
-      return answer;
-    };
-    return normalize(userAnswer) === normalize(correctAnswer);
-  }
-  return normalizeSingle(userAnswer) === normalizeSingle(correctAnswer);
-}
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -53,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       const item = paperQuestionMap.get(answer.questionId);
       if (!item) return answer;
       if (item.question.type !== "essay") {
-        const correct = isCorrect(item.question.type, answer.userAnswer, item.question.answer);
+        const correct = isObjectiveAnswerCorrect(item.question.type, answer.userAnswer, item.question.answer);
         return { ...answer, isCorrect: correct, score: correct ? item.score : 0 };
       }
       if (!gradeMap.has(answer.questionId)) return answer;

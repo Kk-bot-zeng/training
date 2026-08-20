@@ -2,33 +2,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { gradeEssayAnswers } from "@/lib/ai-essay-grader";
-
-function normalizeSingle(value: string): string {
-  const normalized = value.trim().toUpperCase();
-  const optionLetter = normalized.match(/^([A-Z])(?:[.、:：\s]|$)/);
-  return optionLetter ? optionLetter[1] : normalized;
-}
-
-function normalizeJudge(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  if (["正确", "对", "是", "true", "yes", "√"].includes(normalized)) return "true";
-  if (["错误", "错", "否", "false", "no", "×", "x"].includes(normalized)) return "false";
-  return normalized;
-}
-
-function isObjectiveAnswerCorrect(type: string, userAnswer: string, correctAnswer: string): boolean {
-  if (type === "multi") {
-    const normalize = (value: string) => value
-      .split(/[,，、]/)
-      .map(normalizeSingle)
-      .filter(Boolean)
-      .sort()
-      .join(",");
-    return normalize(userAnswer) === normalize(correctAnswer);
-  }
-  if (type === "judge") return normalizeJudge(userAnswer) === normalizeJudge(correctAnswer);
-  return normalizeSingle(userAnswer) === normalizeSingle(correctAnswer);
-}
+import { isObjectiveAnswerCorrect } from "@/lib/exam-answer";
 
 export async function GET() {
   try {
